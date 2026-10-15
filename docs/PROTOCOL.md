@@ -71,6 +71,23 @@ No hyperparameter of CTG-FZ is tuned; if CTG-FZ is revised on the development da
 variant is logged here and only one is taken to the holdout, which is evaluated once, together
 with NG-FZ v1.
 
+### Development log: contagion models (development markets, alpha = 2.5%)
+| Variant | Result |
+|---|---|
+| GJRX-skt vs GJR-skt | −0.0193 (t = −3.90): overnight information is valuable; largest gains for N225, ASX, HSI |
+| CTG-FZ v1 vs GJRX-skt (H1) | +0.0177 (t = 1.30): not better |
+| CTG-FZ v1 vs LSTM-FZ (H2) | +0.0016 (t = 0.96): no gain from the news, although the trained network does react to it (N225 VaR changes by 0.45 pp when news is switched off; corr. with US news size 0.34) |
+| COMB-All+X vs COMB-All (H3) | −0.0057 (t = −6.56), better in 12/12 markets |
+
+**Amendment 3 (15 Oct 2026, before running v2).** Diagnosis: contagion acts mainly through
+volatility, which FZ0 (tail days only) learns inefficiently; GJRX-skt learns it from every day by
+likelihood (same mechanism as NG-FZ v2 vs v3). CTG-FZ v2: location-scale output, VaR_t = s_t sigma_t q_t and
+ES_t = s_t sigma_t c_t, with sigma_t from a variance head trained jointly by FZ0 + QLIKE (lambda = 1,
+fixed, as in NG-FZ v3; the composite score remains strictly consistent). All other settings unchanged.
+Ablation LSTMQ-FZ: identical to CTG-FZ v2 but with the news switched off, to separate the value of
+the information from the value of the new objective. Selection rule: the CTG-FZ variant (v1 or v2)
+with the lower development loss at 2.5% goes to the holdout; v2 is the last CTG variant.
+
 ## Rules
 * The holdout evaluation is run **once**. If a bug is found afterwards, it is fixed, the run is
   repeated, and both runs are reported.
