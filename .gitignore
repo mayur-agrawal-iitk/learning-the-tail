@@ -19,6 +19,7 @@ results/*/.gpu_slots/
 **/nn_jobs/
 **/ng_jobs/
 **/ng_models/
+**/ctg_jobs/
 
 # LaTeX build artefacts (main.pdf is kept)
 paper/*.aux

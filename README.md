@@ -1,5 +1,9 @@
 # Learning the Tail: Deep Joint Forecasting of VaR and Expected Shortfall
 
+**Mayur Agrawal**, Department of Computer Science and Engineering and Department of Economic Sciences,
+IIT Kanpur ([mayurag22@iitk.ac.in](mailto:mayurag22@iitk.ac.in)).
+Paper: [`paper/main.pdf`](paper/main.pdf).
+
 Research project comparing deep sequence models with state-of-the-art econometric models for
 forecasting one-day **Value-at-Risk** and **Expected Shortfall** at α ∈ {1%, 2.5%, 5%} on 12 global equity
 indices, 2006–2026 out of sample.
