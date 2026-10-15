@@ -1,6 +1,6 @@
 All models produce one-step-ahead $(\VaR,\ES)$ forecasts at the three levels. The benchmarks of \citet{agrawal2026learning} (historical simulation, GARCH-type models with normal, Student-$t$ and skewed-$t$ innovations, filtered historical simulation, GARCH-EVT, CAViaR-ES and two FZ-GAS models) and its deep models (LSTM-FZ, TRF-FZ, GJR-LSTM) use only the close-to-close information set and are carried over unchanged. Four models are new.
 
-\paragraph{GJRX-skt (econometric, pre-open information).} A GJR-GARCH(1,1,1) with Hansen skewed-$t$ innovations whose variance responds linearly to squared foreign news,
+\paragraph{GJRX-skt.} An econometric model with the pre-open information: a GJR-GARCH(1,1,1) with Hansen skewed-$t$ innovations whose variance responds linearly to squared foreign news,
 \begin{equation}\label{eq:gjrx}
 \sigma_t^2=\omega+(a+g\,\1\{\varepsilon_{t-1}<0\})\varepsilon_{t-1}^2+b\,\sigma_{t-1}^2+d_1\bar X_t+d_2\bar X_t^-,
 \end{equation}
@@ -19,7 +19,11 @@ The first coordinate is a GJR-GARCH variance, the others are volatility memories
 (iii) With $g=g'=0$ (both neural gates closed) and $d=1$, NG-FZ is exactly GJR-GARCH(1,1) with a constant standardised tail.
 \end{proposition}
 \begin{proof}
-(i) $h_t-h'_t=A^t(h_0-h'_0)$ because the input enters additively and does not depend on the state; $\lVert A^t\rVert_\infty=\max_k a_k^t\le\rho^t$. (ii) By the root test, $\limsup_j\lVert A^jN_\theta(y_{t-1-j})\rVert^{1/j}\le\rho\cdot\limsup_j\exp(\log^+\lVert N_\theta(y_{t-1-j})\rVert/j)=\rho<1$ almost surely, because $\E\log^+\lVert N_\theta(y_0)\rVert<\infty$ implies $\log^+\lVert N_\theta(y_{-j})\rVert/j\to0$ (Borel--Cantelli). Uniqueness and the convergence of $h_t$ follow from (i). (iii) By substitution.
+(i) $h_t-h'_t=A^t(h_0-h'_0)$ because the input enters additively and does not depend on the state; $\lVert A^t\rVert_\infty=\max_k a_k^t\le\rho^t$. (ii) By the root test,
+\[
+\limsup_{j\to\infty}\lVert A^jN_\theta(y_{t-1-j})\rVert^{1/j}\le\rho\cdot\limsup_{j\to\infty}\exp\!\Bigl(\tfrac{1}{j}\log^+\lVert N_\theta(y_{t-1-j})\rVert\Bigr)=\rho<1
+\]
+almost surely, because $\E\log^+\lVert N_\theta(y_0)\rVert<\infty$ implies $\log^+\lVert N_\theta(y_{-j})\rVert/j\to0$ (Borel--Cantelli). Uniqueness and the convergence of $h_t$ follow from (i). (iii) By substitution.
 \end{proof}
 The network is initialised at (iii), with the GARCH part at a fitted GJR model and the tail at the empirical tail of its residuals, so that training starts from a strong econometric model and learns corrections by minimising FZ0. Gradient descent on a linear recursion with bounded decays cannot produce explosive filters, which is a practical advantage over generic recurrent networks.
 

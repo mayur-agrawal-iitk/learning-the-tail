@@ -1,1 +1,56 @@
-\todo{results: written after the holdout evaluation.}
+The holdout sample was evaluated once, with the frozen models. We report the holdout results first; the development results (Table~\ref{tab:devlog} and Appendix) tell the same story. Each sample contains about 62{,}000 asset-days per model and risk level.
+
+\subsection{Pre-registered hypotheses}
+Table~\ref{tab:ho_hyp} reports the three pre-registered tests and two auxiliary comparisons.
+
+\emph{Cross-market information is valuable.} GJRX-skt, which adds two news terms to GJR-GARCH, lowers the FZ0 loss relative to GJR-skt at every risk level. At 2.5\% the panel Diebold--Mariano statistic is $-3.9$, the same as in the development sample, and the model is never significantly worse in any market. It is the best single model on the holdout and the only model with an MCS $p$-value of one at all three levels (Table~\ref{tab:ho_mcs}).
+
+\emph{The networks do not extract it (H1 and H2 not supported).} CTG-FZ is not more accurate than GJRX-skt (H1: $+0.012$, $t=1.3$). It is also not significantly more accurate than LSTM-FZ, which sees no foreign information at all (H2: $-0.003$, $t=-1.4$). The ablation is sharper still. CTG-FZ and its twin without the news, LSTMQ-FZ, differ by $0.0003$ in average loss. Yet the information that the network leaves unused is worth $0.023$ to a linear model. The same pattern appeared in the development sample (Table~\ref{tab:devlog}), so it is not an artefact of one set of markets.
+
+\emph{Combinations dominate (H3 supported).} Adding GJRX-skt and CTG-FZ to the paper-1 combination lowers the loss at every level ($t$ between $-4.8$ and $-6.3$), in 10 to 11 of 12 markets and never significantly the other way. The paper-1 finding that the deep models add information to an econometric combination also replicates on the new markets: COMB-All versus COMB-Econ gives $t=-7.1$ at 2.5\%, with 11 of 12 markets better.
+
+\input{tables/ho_hypotheses}
+
+\subsection{Where the information matters}
+The gain from overnight news is concentrated where the timing argument predicts it should be. In the holdout, the largest improvements of GJRX-skt over GJR-skt occur in Jakarta, Singapore, Taiwan, Kuala Lumpur and Shanghai: Asian markets that open after the U.S.\ and European sessions have closed. The smallest occur in Europe and the Americas. The development sample shows the same ordering (Tokyo, Sydney and Hong Kong first, the DAX and CAC last). The estimated news coefficients mirror this. Negative foreign news raises next-day Asian variance strongly, while the coefficients for U.S.\ and European targets are close to zero. Tail risk is transmitted mainly from the West to Asia overnight, in line with the volatility-spillover evidence of \citet{hamao1990correlations}, \citet{lin1994do} and \citet{diebold2009measuring}. Here it is shown for Expected Shortfall and out of sample.
+
+Figure~\ref{fig:taiex} illustrates the mechanism for the Taiwan index. In March 2020, GJRX-skt raised the 2.5\% VaR on the mornings after the large U.S.\ declines, \emph{before} Taiwan's own losses. The univariate GJR-skt reacted only after them. CTG-FZ also responds to the overnight news, but erratically: it overshoots in some episodes and lags in others.
+
+\begin{figure}[htbp]\centering
+\includegraphics[width=\textwidth]{figures/ho_episodes.pdf}
+\caption{Holdout sample: Taiwan TAIEX daily returns and 2.5\% VaR forecasts of GJR-skt (own history only), GJRX-skt and CTG-FZ (both with pre-open foreign news).}\label{fig:taiex}
+\end{figure}
+
+\subsection{Accuracy, model confidence sets and calibration}
+Table~\ref{tab:ho_loss_a025} reports average losses for all models on the holdout. Three results of \citet{agrawal2026learning} carry over to the new markets. HS, GARCH with Gaussian or symmetric-$t$ innovations, and the FZ-GAS models are significantly worse than GJR-skt. The pooled LSTM is at least as accurate as GJR-skt. The combinations that include the deep models dominate. The GJR-LSTM hybrid is significantly more accurate than GJR-skt on the holdout ($t=-2.8$), which was not the case in the development sample. NG-FZ is statistically indistinguishable from GJR-skt in both samples.
+
+\input{tables/ho_loss_summary_a025}
+
+In the MCS (Table~\ref{tab:ho_mcs}), GJRX-skt has a pooled $p$-value of one at every level. The recurrent neural models (LSTM-FZ, GJR-LSTM, NG-FZ, LSTMQ-FZ and CTG-FZ) and COMB-All+X are also retained in the pooled 90\% set at the 2.5\% and 5\% levels. Every econometric model without the overnight information, the Transformer and COMB-All are excluded at every level. On the holdout markets, the recurrent networks are thus statistically closer to the best model than any univariate econometric model, even without the foreign news.
+
+\input{tables/ho_mcs_summary}
+
+Calibration (Table~\ref{tab:ho_bt_a025}) mirrors the first paper. GARCH-EVT and the combinations are the best calibrated, with violation rates of 2.5--2.6\% and few rejections. GJRX-skt has the same calibration as GJR-skt and passes the exceedance-residual ES test in every market. The neural models are again slightly under-conservative. In regulatory terms (Table~\ref{tab:ho_reg}), COMB-All+X spends the fewest days in the Basel yellow zone of any model, with red-zone frequency as low as GJR-skt and no more capital.
+
+\input{tables/ho_backtests_a025}
+\input{tables/ho_regulatory}
+
+\subsection{Crisis periods}
+Table~\ref{tab:ho_sub} shows that the value of cross-market information is not confined to crises. GJRX-skt is more accurate than GJR-skt in every subperiod, and significantly so in the calm 2013--2019 period. COMB-All+X is significantly more accurate in the global financial crisis, the euro-area crisis, the 2022 inflation shock and the calm period, with $t$ between $-3.2$ and $-4.0$. The exception is the COVID-19 crash, where no difference is significant because the window is so short.
+
+\input{tables/ho_subperiods}
+
+\begin{figure}[htbp]\centering
+\includegraphics[width=\textwidth]{figures/ho_cumulative_diff.pdf}
+\caption{Holdout sample: cumulative FZ0 loss of LSTM-FZ, GJRX-skt and CTG-FZ minus GJR-skt (cross-asset average), $\alpha=2.5\%$.}\label{fig:ho_cum}
+\end{figure}
+
+\subsection{Why do the networks not use the information?}
+The trained contagion network does react to foreign news. In the development sample, switching the news off changes its Nikkei VaR by 0.45 percentage points on average, and the change is correlated 0.34 with the size of the U.S.\ move. The problem is therefore not that the network ignores the input. It fails to turn the input into a better forecast than a model that imposes the right functional form. Two pieces of evidence point to statistical efficiency. First, FZ0 learns from tail days only. In the development sample, adding the efficiency-improving QLIKE score halved the deficit of the market-specific neural GARCH (NG-FZ v2 to v3). Second, GJRX-skt embodies a strong and correct inductive bias: foreign squared news enters the variance additively, with two non-negative coefficients estimated by likelihood from every day. A network must instead discover this structure among roughly a dozen news inputs, market embeddings and attention weights, from the same eight-year windows. With daily data and tail-focused losses, the bias wins.
+
+The learned news-impact curves of NG-FZ (Figure~\ref{fig:nic}) are consistent with this reading. The network moves away from GJR-GARCH in an economically sensible direction: large positive shocks raise variance less than GJR implies. The correction is small, and it does not translate into significantly better forecasts.
+
+\begin{figure}[htbp]\centering
+\includegraphics[width=\textwidth]{figures/ho_news_impact_TAIEX_2026.pdf}
+\caption{Holdout sample: news-impact curve of NG-FZ (refit January 2026, seed 0) for the Taiwan index versus the GJR-GARCH it is initialised at; the state is held at its training-sample average.}\label{fig:nic}
+\end{figure}

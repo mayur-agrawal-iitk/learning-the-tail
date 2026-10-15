@@ -1,0 +1,35 @@
+\begin{table}[htbp]
+\centering
+\footnotesize
+\caption{Holdout sample: Model confidence set (90\%) membership}
+\label{tab:ho_mcs}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lrrrrrr}
+\toprule
+Model & \# assets 1\% & \# assets 2.5\% & \# assets 5\% & Pooled p 1\% & Pooled p 2.5\% & Pooled p 5\% \\
+\midrule
+HS & 0 & 0 & 0 & 0.000 & 0.000 & 0.000 \\
+GARCH-N & 0 & 0 & 0 & 0.000 & 0.000 & 0.000 \\
+GARCH-t & 2 & 1 & 1 & 0.001 & 0.000 & 0.000 \\
+GJR-skt & 10 & 5 & 4 & 0.002 & 0.000 & 0.000 \\
+FHS & 9 & 6 & 4 & 0.009 & 0.000 & 0.000 \\
+GARCH-EVT & 9 & 6 & 4 & 0.009 & 0.000 & 0.000 \\
+CAViaR-ES & 11 & 10 & 11 & 0.066 & 0.025 & 0.045 \\
+FZ-1F & 0 & 0 & 0 & 0.000 & 0.000 & 0.000 \\
+FZ-Hyb & 1 & 0 & 0 & 0.000 & 0.000 & 0.000 \\
+LSTM-FZ & 11 & 12 & 12 & 0.278 & 0.508 & 0.540 \\
+TRF-FZ & 9 & 8 & 8 & 0.038 & 0.025 & 0.029 \\
+GJR-LSTM & 11 & 12 & 12 & 0.300 & 0.567 & 0.592 \\
+NG-FZ & 10 & 12 & 11 & 0.101 & 0.252 & 0.540 \\
+GJRX-skt & 12 & 12 & 12 & 1.000 & 1.000 & 1.000 \\
+LSTMQ-FZ & 11 & 12 & 12 & 0.300 & 0.567 & 0.552 \\
+CTG-FZ & 11 & 12 & 12 & 0.300 & 0.567 & 0.592 \\
+COMB-Econ & 6 & 2 & 2 & 0.000 & 0.000 & 0.000 \\
+COMB-All & 5 & 3 & 2 & 0.001 & 0.000 & 0.000 \\
+COMB-All+NG & 10 & 9 & 7 & 0.024 & 0.008 & 0.003 \\
+COMB-All+X & 11 & 12 & 12 & 0.300 & 0.567 & 0.592 \\
+\bottomrule
+\end{tabular}
+}
+\par\smallskip\parbox{\linewidth}{\scriptsize Columns '\# assets': number of assets whose MCS contains the model. 'Pooled p': MCS p-value on the cross-asset average loss series; a model is in the pooled MCS if p > 0.1. Range statistic, stationary bootstrap, 2000 replications.}
+\end{table}

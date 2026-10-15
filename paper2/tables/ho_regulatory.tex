@@ -1,0 +1,33 @@
+\begin{table}[htbp]
+\centering
+\footnotesize
+\caption{Holdout sample: Regulatory view: capital and Basel traffic light}
+\label{tab:ho_reg}
+\begin{tabular}{lrrr}
+\toprule
+Model & Capital (avg -ES 2.5\%) & Yellow zone \% days & Red zone \% days \\
+\midrule
+HS & 3.09 & 34.8 & 4.9 \\
+GARCH-N & 2.46 & 53.5 & 4.1 \\
+GARCH-t & 2.76 & 31.8 & 0.3 \\
+GJR-skt & 2.91 & 18.6 & 0.0 \\
+FHS & 2.95 & 15.1 & 0.3 \\
+GARCH-EVT & 2.96 & 14.0 & 0.0 \\
+CAViaR-ES & 2.89 & 17.0 & 0.1 \\
+FZ-1F & 3.08 & 19.2 & 2.2 \\
+FZ-Hyb & 3.01 & 16.4 & 0.4 \\
+LSTM-FZ & 2.85 & 17.4 & 0.3 \\
+TRF-FZ & 2.87 & 22.1 & 0.3 \\
+GJR-LSTM & 2.87 & 16.8 & 0.3 \\
+NG-FZ & 2.84 & 20.6 & 0.9 \\
+GJRX-skt & 2.88 & 18.9 & 0.1 \\
+LSTMQ-FZ & 2.83 & 18.2 & 0.5 \\
+CTG-FZ & 2.84 & 17.8 & 0.5 \\
+COMB-Econ & 2.88 & 16.3 & 0.0 \\
+COMB-All & 2.87 & 14.2 & 0.0 \\
+COMB-All+NG & 2.87 & 13.9 & 0.0 \\
+COMB-All+X & 2.87 & 13.5 & 0.0 \\
+\bottomrule
+\end{tabular}
+\par\smallskip\parbox{\linewidth}{\scriptsize Capital: average forecast of $-\mathrm{ES}_{2.5\%}$ (FRTB measure), in \% of position value, averaged over assets. Traffic light: share of days on which the trailing 250-day count of 99\% VaR violations is 5--9 (yellow) or $\geq$10 (red).}
+\end{table}

@@ -1,0 +1,33 @@
+\begin{table}[htbp]
+\centering
+\footnotesize
+\caption{Development sample: Average FZ0 loss, $\alpha=0.025$}
+\label{tab:dev_loss_a025}
+\begin{tabular}{lrrrrrr}
+\toprule
+Model & Avg loss & Diff vs bench & Panel DM t & \# better & \# worse & Mean rank \\
+\midrule
+HS & 1.3353 & 0.2101 & 5.07 & 0 & 12 & 20.0 \\
+GARCH-N & 1.1910 & 0.0646 & 4.64 & 0 & 10 & 17.8 \\
+GARCH-t & 1.1692 & 0.0432 & 4.00 & 0 & 10 & 15.8 \\
+GJR-skt & 1.1262 & 0.0000 &  & 0 & 0 & 9.2 \\
+FHS & 1.1245 & -0.0017 & -0.93 & 0 & 0 & 8.2 \\
+GARCH-EVT & 1.1237 & -0.0021 & -1.19 & 0 & 0 & 7.7 \\
+CAViaR-ES & 1.1331 & 0.0060 & 0.98 & 0 & 0 & 10.5 \\
+FZ-1F & 1.1925 & 0.0651 & 6.39 & 0 & 12 & 18.4 \\
+FZ-Hyb & 1.1623 & 0.0377 & 4.00 & 0 & 6 & 15.9 \\
+LSTM-FZ & 1.1244 & -0.0033 & -0.29 & 1 & 0 & 7.7 \\
+TRF-FZ & 1.1497 & 0.0227 & 1.30 & 0 & 1 & 14.8 \\
+GJR-LSTM & 1.1300 & 0.0036 & 0.61 & 0 & 0 & 10.2 \\
+NG-FZ & 1.1412 & 0.0146 & 1.65 & 0 & 2 & 13.4 \\
+GJRX-skt & \textbf{1.1076} & -0.0193 & -3.90 & 5 & 0 & 3.9 \\
+LSTMQ-FZ & 1.1237 & -0.0042 & -0.40 & 1 & 0 & 7.8 \\
+CTG-FZ & 1.1238 & -0.0040 & -0.38 & 1 & 0 & 7.9 \\
+COMB-Econ & 1.1267 & 0.0007 & 0.17 & 0 & 0 & 9.5 \\
+COMB-All & 1.1160 & -0.0102 & -2.05 & 3 & 0 & 4.5 \\
+COMB-All+NG & 1.1161 & -0.0101 & -2.02 & 3 & 0 & 4.5 \\
+COMB-All+X & 1.1102 & -0.0160 & -3.49 & 6 & 0 & \textbf{2.3} \\
+\bottomrule
+\end{tabular}
+\par\smallskip\parbox{\linewidth}{\scriptsize Avg loss: FZ0 loss averaged over days and then over the 12 assets. Diff vs bench: average loss minus that of GJR-skt (negative = better); Panel DM t: Diebold--Mariano statistic on the cross-asset average loss differential (Newey--West). \# better / worse: assets where the single-asset DM test is significant at 5\%. Mean rank across assets (1 = best).}
+\end{table}
