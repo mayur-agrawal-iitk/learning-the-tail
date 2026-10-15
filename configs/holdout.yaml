@@ -59,3 +59,7 @@ evaluation:
     COVID: ["2020-02-01", "2020-06-30"]
     Inflation 2022: ["2022-01-01", "2022-12-31"]
     Calm 2013-2019: ["2013-01-01", "2019-12-31"]
+
+contagion:             # paper 2 cross-market variants (src/tailrisk/contagion.py); hyperparameters from `neural`
+  CTG-FZ: {scale_head: true, aux_qlike: 1.0, use_news: true}     # v2 (v1: scale_head false, aux_qlike 0)
+  LSTMQ-FZ: {scale_head: true, aux_qlike: 1.0, use_news: false}  # ablation: v2 without foreign news

@@ -53,3 +53,18 @@ def test_attention_weights_are_a_distribution_over_available_markets():
     torch.testing.assert_close(w[has].sum(1), torch.ones(int(has.sum())))
     assert torch.all(w[avail == 0] == 0)
     assert torch.all(e <= v) and torch.all(v < 0)
+
+
+def test_scale_head_and_news_switch():
+    torch.manual_seed(3)
+    seq, static, news, avail, tgt = _inputs()
+    net = ContagionNet(5, 2, 1, ALPHAS, NC, scale_head=True).eval()
+    with torch.no_grad():
+        v, e = net(seq, static, news, avail, tgt)
+    assert net.last_sigma is not None and torch.all(net.last_sigma > 0)
+    assert torch.all(e <= v) and torch.all(v < 0)
+    off = ContagionNet(5, 2, 1, ALPHAS, NC, scale_head=True, use_news=False).eval()
+    with torch.no_grad():
+        a, _ = off(seq, static, news, avail, tgt)
+        b, _ = off(seq, static, news * 0, avail * 0, tgt)
+    torch.testing.assert_close(a, b)

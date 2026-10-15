@@ -113,6 +113,7 @@ def main() -> None:
     hyps = {"H1: CTG-FZ vs GJRX-skt": ("CTG-FZ", "GJRX-skt"),
             "H2: CTG-FZ vs LSTM-FZ": ("CTG-FZ", "LSTM-FZ"),
             "H3: COMB-All+X vs COMB-All": ("COMB-All+X", "COMB-All"),
+            "Ablation: CTG-FZ vs LSTMQ-FZ": ("CTG-FZ", "LSTMQ-FZ"),
             "Info: GJRX-skt vs GJR-skt": ("GJRX-skt", "GJR-skt")}
     rows = []
     for name, (m1, m2) in hyps.items():

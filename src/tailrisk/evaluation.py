@@ -18,8 +18,8 @@ from .scoring import fz0_loss
 
 ECON = ["HS", "GARCH-N", "GARCH-t", "GJR-skt", "FHS", "GARCH-EVT", "CAViaR-ES", "FZ-1F", "FZ-Hyb"]
 DEEP = ["LSTM-FZ", "TRF-FZ", "GJR-LSTM"]
-NEW = ["NG-FZ", "GJRX-skt", "CTG-FZ"]   # paper 2 (only included with include_new=True)
-NEW_NEURAL = ["NG-FZ", "CTG-FZ"]
+NEW = ["NG-FZ", "GJRX-skt", "LSTMQ-FZ", "CTG-FZ"]   # paper 2 (only included with include_new=True)
+NEW_NEURAL = ["NG-FZ", "LSTMQ-FZ", "CTG-FZ"]
 # Pre-specified equal-weight combinations (fixed before looking at results; docs/PROTOCOL.md)
 COMBOS = {"COMB-Econ": ECON[1:], "COMB-All": ECON[1:] + DEEP}
 COMBOS_NEW = {"COMB-All+NG": ECON[1:] + DEEP + ["NG-FZ"],

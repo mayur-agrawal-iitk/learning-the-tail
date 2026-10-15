@@ -62,3 +62,7 @@ neural_garch:
   val_frac: 0.2
   seeds: [0]
   n_jobs: 4
+
+contagion:             # paper 2 cross-market variants (src/tailrisk/contagion.py); hyperparameters from `neural`
+  CTG-FZ: {scale_head: true, aux_qlike: 1.0, use_news: true}     # v2 (v1: scale_head false, aux_qlike 0)
+  LSTMQ-FZ: {scale_head: true, aux_qlike: 1.0, use_news: false}  # ablation: v2 without foreign news

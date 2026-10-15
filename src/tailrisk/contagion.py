@@ -44,10 +44,19 @@ INPUTS = ("seq", "static", "news", "avail", "tgt")
 
 class ContagionNet(nn.Module):
     def __init__(self, n_markets: int, n_seq: int, n_static: int, alphas: list[float], nc: dict,
-                 emb_dim: int = 8, init=None):
+                 emb_dim: int = 8, init=None, scale_head: bool = False, use_news: bool = True):
         super().__init__()
         H = nc["hidden"]
         self.H = H
+        self.use_news = use_news
+        # v2: location-scale output; sigma_t (in units of the slow scale) from a variance head
+        self.var_head = None
+        if scale_head:
+            self.var_head = nn.Sequential(nn.Linear(2 * H + n_static, H), nn.Tanh(), nn.Linear(H, 1))
+            with torch.no_grad():
+                self.var_head[-1].weight.mul_(0.1)
+                self.var_head[-1].bias.zero_()
+        self.last_sigma: torch.Tensor | None = None
         self.enc = LSTMEncoder(n_seq, H, nc["layers"], nc["dropout"])
         self.emb = nn.Embedding(n_markets, emb_dim)
         self.token = nn.Sequential(nn.Linear(2 + emb_dim, H), nn.Tanh(), nn.Linear(H, H))
@@ -68,8 +77,17 @@ class ContagionNet(nn.Module):
         w = w / w.sum(-1, keepdim=True).clamp_min(1e-9)
         any_news = (avail.sum(-1, keepdim=True) > 0).to(h.dtype)
         c = (w[..., None] * tok).sum(1) * any_news                  # (B, H)
+        if not self.use_news:                                       # ablation: no foreign information
+            c = torch.zeros_like(c)
         self.last_weights = w.detach()
-        return self.head(torch.cat([h, c, static], -1))
+        z = torch.cat([h, c, static], -1)
+        v, e = self.head(z)
+        if self.var_head is None:
+            self.last_sigma = None
+            return v, e
+        sigma = torch.exp(0.5 * self.var_head(z).squeeze(-1))
+        self.last_sigma = sigma
+        return sigma[:, None] * v, sigma[:, None] * e
 
 
 # ----------------------------------------------------------------------------- data
@@ -92,13 +110,16 @@ def _batches(n, bs, rng):
 
 
 def train_ctg(train: dict, val: dict, n_markets: int, alphas: list[float], nc: dict, seed: int,
-              device: str = "cpu"):
+              device: str = "cpu", variant: dict | None = None):
+    variant = variant or {}
+    lam = float(variant.get("aux_qlike", 0.0))
     torch.manual_seed(seed)
     rng = np.random.default_rng(seed)
     dev = torch.device(device)
     tails = np.array([empirical_var_es(train["y"].astype(float), a) for a in alphas])
     net = ContagionNet(n_markets, train["seq"].shape[2], train["static"].shape[1], alphas, nc,
-                       init=(tails[:, 0], tails[:, 1])).to(dev)
+                       init=(tails[:, 0], tails[:, 1]), scale_head=bool(variant.get("scale_head", False)),
+                       use_news=bool(variant.get("use_news", True))).to(dev)
     opt = torch.optim.AdamW(net.parameters(), lr=nc["lr"], weight_decay=nc["weight_decay"])
     a = torch.tensor(alphas, dtype=torch.float32, device=dev)
     T = {k: torch.from_numpy(v).to(dev) for k, v in train.items()}
@@ -121,6 +142,10 @@ def train_ctg(train: dict, val: dict, n_markets: int, alphas: list[float], nc: d
             b = torch.from_numpy(b).to(dev)
             v, e = net(*(T[k][b] for k in INPUTS))
             loss = fz0_torch(T["y"][b], v, e, a)
+            if lam > 0 and net.last_sigma is not None:
+                # QLIKE for E[y^2 | info]: learns the volatility channel from every day
+                s2 = net.last_sigma ** 2
+                loss = loss + lam * (T["y"][b] ** 2 / s2 + torch.log(s2)).mean()
             opt.zero_grad()
             loss.backward()
             nn.utils.clip_grad_norm_(net.parameters(), 1.0)
@@ -137,7 +162,7 @@ def train_ctg(train: dict, val: dict, n_markets: int, alphas: list[float], nc: d
     return net, {"epochs": epoch, "best_val": best}
 
 
-def _job(d0, d1, seed, rets, news, cfg, mode, save_path: Path | None = None):
+def _job(d0, d1, seed, rets, news, cfg, mode, save_path: Path | None = None, name: str = NAME):
     torch.set_num_threads(1)
     tic = time.time()
     nc, alphas = cfg["neural"], cfg["alphas"]
@@ -158,7 +183,8 @@ def _job(d0, d1, seed, rets, news, cfg, mode, save_path: Path | None = None):
         for name, sl in (("train", slice(0, cut)), ("val", slice(cut, f["n_tr"]))):
             parts[name].append({k: f[k][sl] for k in (*INPUTS, "y")})
     stack = {n: {k: np.concatenate([p[k] for p in ps]) for k in (*INPUTS, "y")} for n, ps in parts.items()}
-    net, info = train_ctg(stack["train"], stack["val"], len(markets), alphas, nc, seed, device)
+    variant = cfg.get("contagion", {}).get(name, {})
+    net, info = train_ctg(stack["train"], stack["val"], len(markets), alphas, nc, seed, device, variant)
     if save_path is not None:
         torch.save({"state": net.state_dict(), "markets": markets}, save_path)
     frames = []
@@ -167,30 +193,30 @@ def _job(d0, d1, seed, rets, news, cfg, mode, save_path: Path | None = None):
             n_tr = f["n_tr"]
             v, e = net(*(torch.from_numpy(f[k][n_tr:]).to(device) for k in INPUTS))
             loc, scale = f["loc"][n_tr:, None], f["scale"][n_tr:, None]
-            df = to_long(NAME, asset, rets[asset].index[f["te_idx"]], alphas,
+            df = to_long(name, asset, rets[asset].index[f["te_idx"]], alphas,
                          loc + scale * v.cpu().numpy().astype(float),
                          loc + scale * e.cpu().numpy().astype(float))
             df["seed"] = seed
             frames.append(df)
-    info.update({"model": NAME, "refit": d0.date(), "seed": seed, "device": device,
+    info.update({"model": name, "refit": d0.date(), "seed": seed, "device": device,
                  "n_train": int(stack["train"]["y"].size), "seconds": round(time.time() - tic, 1)})
     return pd.concat(frames, ignore_index=True), info
 
 
-def _job_path(cfg, d0, seed) -> Path:
-    return results_dir(cfg) / "ctg_jobs" / f"{NAME}_{d0.date()}_s{seed}.parquet"
+def _job_path(cfg, d0, seed, name: str = NAME) -> Path:
+    return results_dir(cfg) / "ctg_jobs" / f"{name}_{d0.date()}_s{seed}.parquet"
 
 
-def _checkpointed(d0, d1, seed, rets, news, cfg, mode) -> dict:
-    path = _job_path(cfg, d0, seed)
-    df, info = _job(d0, d1, seed, rets, news, cfg, mode, path.with_suffix(".pt"))
+def _checkpointed(d0, d1, seed, rets, news, cfg, mode, name: str = NAME) -> dict:
+    path = _job_path(cfg, d0, seed, name)
+    df, info = _job(d0, d1, seed, rets, news, cfg, mode, path.with_suffix(".pt"), name)
     df.to_parquet(path.with_suffix(".tmp"), index=False)
     path.with_suffix(".tmp").replace(path)
     pd.DataFrame([info]).to_csv(path.with_suffix(".csv"), index=False)
     return info
 
 
-def run_contagion(cfg: dict) -> None:
+def run_contagion(cfg: dict, name: str = NAME) -> None:
     nc = cfg["neural"]
     rets = load_returns(cfg)
     news = overnight_news(rets)
@@ -198,25 +224,25 @@ def run_contagion(cfg: dict) -> None:
     ends = dates[1:] + [None]
     all_jobs = [(d0, d1, s) for d0, d1 in zip(dates, ends) for s in nc["seeds"]]
     (results_dir(cfg) / "ctg_jobs").mkdir(parents=True, exist_ok=True)
-    jobs = [j for j in all_jobs if not _job_path(cfg, j[0], j[2]).exists()]
+    jobs = [j for j in all_jobs if not _job_path(cfg, j[0], j[2], name).exists()]
     mode = resolve_device(nc)
     lock_dir = _gpu_lock_dir(cfg)
     lock_dir.mkdir(parents=True, exist_ok=True)
     for f in lock_dir.glob("slot_*.lock"):
         f.unlink()
-    print(f"[ctg] {len(all_jobs)} jobs, {len(all_jobs) - len(jobs)} already done, mode={mode}, "
+    print(f"[ctg] {name}: {len(all_jobs)} jobs, {len(all_jobs) - len(jobs)} already done, mode={mode}, "
           f"{nc['n_jobs']} workers", flush=True)
     if jobs:
         Parallel(n_jobs=nc["n_jobs"], verbose=10)(
-            delayed(_checkpointed)(d0, d1, s, rets, news, cfg, mode) for d0, d1, s in jobs)
+            delayed(_checkpointed)(d0, d1, s, rets, news, cfg, mode, name) for d0, d1, s in jobs)
     for f in lock_dir.glob("slot_*.lock"):
         f.unlink()
     rdir = results_dir(cfg)
-    paths = [_job_path(cfg, d0, s) for d0, _, s in all_jobs]
+    paths = [_job_path(cfg, d0, s, name) for d0, _, s in all_jobs]
     log = pd.concat([pd.read_csv(p.with_suffix(".csv")) for p in paths], ignore_index=True)
-    log.to_csv(rdir / "tables" / "ctg_training_log.csv", index=False)
+    log.to_csv(rdir / "tables" / f"training_log_{name}.csv", index=False)
     preds = pd.concat([pd.read_parquet(p) for p in paths], ignore_index=True)
-    preds.to_parquet(rdir / "forecasts" / f"neural_{NAME}_seeds.parquet", index=False)
+    preds.to_parquet(rdir / "forecasts" / f"neural_{name}_seeds.parquet", index=False)
     ens = preds.groupby(["model", "asset", "date", "alpha"], as_index=False)[["var", "es"]].mean()
-    ens.to_parquet(rdir / "forecasts" / f"neural_{NAME}.parquet", index=False)
+    ens.to_parquet(rdir / "forecasts" / f"neural_{name}.parquet", index=False)
     print(log.groupby("device")[["epochs", "best_val", "seconds"]].mean().round(3), flush=True)
