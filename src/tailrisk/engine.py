@@ -87,6 +87,6 @@ def run_econometric(cfg: dict, assets: list[str] | None = None,
     new = pd.concat(res, ignore_index=True)
     for a in assets:
         path = out / f"econ_{a}.parquet"
-        old = pd.read_parquet(path)
+        old = pd.read_parquet(path) if path.exists() else new.iloc[:0]
         old = old[~old.model.isin(models)]
         pd.concat([old, new[new.asset == a]], ignore_index=True).to_parquet(path, index=False)

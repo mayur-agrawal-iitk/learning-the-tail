@@ -93,6 +93,22 @@ model name, so the variant settings were not applied (both trained as v1) and th
 mislabelled. The evaluation crashed on the mislabelled files, so no results of these runs were
 seen. The bug was fixed (with an end-to-end test), the outputs were deleted and both runs repeated.
 
+| Variant (corrected runs) | Development result, alpha = 2.5% |
+|---|---|
+| CTG-FZ v2 vs GJRX-skt (H1) | +0.0153 (t = 1.22) |
+| CTG-FZ v2 vs LSTM-FZ (H2) | −0.0007 (t = −0.29) |
+| CTG-FZ v2 vs LSTMQ-FZ (ablation) | +0.0002 (t = 0.48): the network gains nothing from the news |
+| COMB-All+X vs COMB-All (H3) | −0.0059 (t = −6.11), better in 12/12 markets |
+
+## FREEZE (15 Oct 2026)
+Development is closed. Frozen for the single holdout evaluation:
+* NG-FZ **v1** (pooled GARCH block, FZ0 only): `neural_garch: garch_block: pooled, aux_qlike: 0`
+* CTG-FZ **v2** (development loss 1.1238 < v1 1.1260) and its ablation LSTMQ-FZ
+* GJRX-skt; all paper-1 benchmarks and deep models, unchanged
+* Combinations COMB-Econ, COMB-All, COMB-All+NG, COMB-All+X
+The frozen code is the git commit that adds this section. The holdout markets are evaluated once,
+with `configs/holdout.yaml`, and reported in full whatever the outcome.
+
 ## Rules
 * The holdout evaluation is run **once**. If a bug is found afterwards, it is fixed, the run is
   repeated, and both runs are reported.

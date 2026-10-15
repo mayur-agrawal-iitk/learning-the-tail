@@ -63,3 +63,19 @@ evaluation:
 contagion:             # paper 2 cross-market variants (src/tailrisk/contagion.py); hyperparameters from `neural`
   CTG-FZ: {scale_head: true, aux_qlike: 1.0, use_news: true}     # v2 (v1: scale_head false, aux_qlike 0)
   LSTMQ-FZ: {scale_head: true, aux_qlike: 1.0, use_news: false}  # ablation: v2 without foreign news
+
+neural_garch:          # FROZEN: NG-FZ v1 (docs/PROTOCOL.md)
+  garch_block: pooled
+  aux_qlike: 0.0
+  d: 8
+  hidden: 16
+  rho: 0.999
+  burn_in: 250
+  lr: 0.003
+  lr_garch: 0.001
+  max_steps: 1500
+  eval_every: 10
+  patience: 15
+  val_frac: 0.2
+  seeds: [0, 1, 2]
+  n_jobs: 6
