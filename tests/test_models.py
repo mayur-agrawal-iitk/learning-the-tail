@@ -99,3 +99,23 @@ def test_fz_gas_beats_constant_on_garch_data():
     ec = r[:2500][r[:2500] <= q].mean()
     oos = r[2500:3000]
     assert fz0_loss(oos, v[:, 0], e[:, 0], a).mean() < fz0_loss(oos, q, ec, a).mean()
+
+
+def test_gjrx_nests_gjr_and_is_causal():
+    """GJR-X with zero news equals GJR-GARCH's likelihood fit; forecasts never use future returns."""
+    from tailrisk.models.garchx import GJRXSkt
+    r = simulate_gjr(1300, seed=8)
+    x = np.zeros(r.size)
+    est = GJRXSkt(x, x)
+    (v, e), = est.fit_predict(r, 1100, 1130, 1100, ALPHAS).values()
+    ref = ArchFamily("GJR-skt", o=1, dist="skewt").fit_predict(r, 1100, 1130, 1100, ALPHAS)["GJR-skt"]
+    np.testing.assert_allclose(v, ref[0], rtol=0.03)      # same model, different variance start-up
+    assert np.all(e <= v)
+    x1 = np.abs(np.random.default_rng(9).standard_normal(r.size))
+    est1, est2 = GJRXSkt(x1, x1 * 0.5), GJRXSkt(x1, x1 * 0.5)
+    r2 = r.copy()
+    r2[1115:] = r2[1115:] * 4 - 2
+    (va, _), = est1.fit_predict(r, 1100, 1130, 1100, ALPHAS).values()
+    (vb, _), = est2.fit_predict(r2, 1100, 1130, 1100, ALPHAS).values()
+    np.testing.assert_allclose(va[:16], vb[:16], rtol=1e-10)
+    assert not np.allclose(va[16:], vb[16:])

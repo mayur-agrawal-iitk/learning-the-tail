@@ -18,10 +18,12 @@ from .scoring import fz0_loss
 
 ECON = ["HS", "GARCH-N", "GARCH-t", "GJR-skt", "FHS", "GARCH-EVT", "CAViaR-ES", "FZ-1F", "FZ-Hyb"]
 DEEP = ["LSTM-FZ", "TRF-FZ", "GJR-LSTM"]
-NEW = ["NG-FZ"]   # paper 2 (only included with include_new=True)
-# Pre-specified equal-weight combinations (fixed before looking at results)
+NEW = ["NG-FZ", "GJRX-skt", "CTG-FZ"]   # paper 2 (only included with include_new=True)
+NEW_NEURAL = ["NG-FZ", "CTG-FZ"]
+# Pre-specified equal-weight combinations (fixed before looking at results; docs/PROTOCOL.md)
 COMBOS = {"COMB-Econ": ECON[1:], "COMB-All": ECON[1:] + DEEP}
-COMBOS_NEW = {"COMB-All+NG": ECON[1:] + DEEP + NEW}
+COMBOS_NEW = {"COMB-All+NG": ECON[1:] + DEEP + ["NG-FZ"],
+              "COMB-All+X": ECON[1:] + DEEP + ["GJRX-skt", "CTG-FZ"]}
 
 
 @dataclass
@@ -45,10 +47,12 @@ def build_panel(cfg: dict, include_new: bool = False) -> Panel:
     """All forecasts on a common sample. ``include_new`` adds the paper-2 model(s) and their
     combination; the default reproduces the paper-1 model set exactly."""
     fdir = results_dir(cfg) / "forecasts"
-    neural = DEEP + (NEW if include_new else [])
+    neural = DEEP + (NEW_NEURAL if include_new else [])
     combos = {**COMBOS, **(COMBOS_NEW if include_new else {})}
-    order = ECON + neural + list(combos)
+    order = ECON + DEEP + (NEW if include_new else []) + list(combos)
     files = sorted(fdir.glob("econ_*.parquet")) + [fdir / f"neural_{m}.parquet" for m in neural]
+    if include_new:
+        files += sorted(fdir.glob("xm_*.parquet"))           # GJR-X with cross-market news
     df = pd.concat([pd.read_parquet(f) for f in files if f.exists()], ignore_index=True)
     df["date"] = pd.to_datetime(df["date"])
     key = ["asset", "date", "alpha"]
@@ -253,7 +257,7 @@ def seed_robustness(cfg: dict, p: Panel, alpha: float) -> pd.DataFrame:
     """Average loss of each single seed versus the seed ensemble (neural models in the panel)."""
     fdir = results_dir(cfg) / "forecasts"
     rows = []
-    for m in [x for x in DEEP + NEW if x in p.models]:
+    for m in [x for x in DEEP + NEW_NEURAL if x in p.models]:
         f = fdir / f"neural_{m}_seeds.parquet"
         if not f.exists():
             continue

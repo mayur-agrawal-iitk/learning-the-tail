@@ -1,0 +1,2 @@
+epochs,best_val,model,refit,seed,device,n_train,seconds
+21,2.357850875854492,CTG-FZ,2006-01-01,0,cuda,19200,37.5

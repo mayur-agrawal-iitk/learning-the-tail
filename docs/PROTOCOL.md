@@ -52,6 +52,25 @@ lambda = 1 is fixed without tuning. The selection rule is extended to {v1, v2, v
 development FZ0 loss at 2.5% goes to the holdout, and **v3 is the last development variant**. The
 holdout markets have not been touched by any model; all three variants will be reported.
 
+## Amendment 2 (15 Oct 2026): cross-market contagion models, specified before any results
+Information set: **pre-open**, i.e. a market's own returns up to its previous close plus every
+foreign session that closed before it opens (`src/tailrisk/crossmarket.py`, conservative session
+times and a 30-minute safety margin on each side).
+
+| Model | Definition (fixed now) |
+|---|---|
+| GJRX-skt | GJR-GARCH-X, skewed-t; X = mean squared foreign overnight news and its negative part; MLE, refit every 21 days (same schedule as paper 1) |
+| CTG-FZ | LSTM-FZ (identical inputs and hyperparameters) **plus** a contagion module: attention from the target market (and its LSTM state) over tokens built from each foreign market's overnight news; trained on FZ0, pooled, yearly refits, 3 seeds |
+| COMB-All+X | equal-weight average of COMB-All's members, GJRX-skt and CTG-FZ |
+
+Hypotheses (development and, once frozen, holdout):
+* H1 (value of contagion learning, the primary test): CTG-FZ has lower FZ0 loss than GJRX-skt at 2.5% (panel DM).
+* H2 (value of cross-market information for the network): CTG-FZ has lower loss than LSTM-FZ.
+* H3: COMB-All+X has lower loss than COMB-All.
+No hyperparameter of CTG-FZ is tuned; if CTG-FZ is revised on the development data, every
+variant is logged here and only one is taken to the holdout, which is evaluated once, together
+with NG-FZ v1.
+
 ## Rules
 * The holdout evaluation is run **once**. If a bug is found afterwards, it is fixed, the run is
   repeated, and both runs are reported.

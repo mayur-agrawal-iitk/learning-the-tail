@@ -109,6 +109,30 @@ def main() -> None:
                          "# assets better": "{:.0f}", "# assets worse": "{:.0f}"},
                     notes="Loss difference COMB-All+NG minus COMB-All (negative = adding NG-FZ helps).")
         print("\nCombination value (COMB-All+NG vs COMB-All)\n", cv2.round(4))
+    # Paper 2 pre-registered hypotheses (docs/PROTOCOL.md, amendment 2)
+    hyps = {"H1: CTG-FZ vs GJRX-skt": ("CTG-FZ", "GJRX-skt"),
+            "H2: CTG-FZ vs LSTM-FZ": ("CTG-FZ", "LSTM-FZ"),
+            "H3: COMB-All+X vs COMB-All": ("COMB-All+X", "COMB-All"),
+            "Info: GJRX-skt vs GJR-skt": ("GJRX-skt", "GJR-skt")}
+    rows = []
+    for name, (m1, m2) in hyps.items():
+        if {m1, m2} <= set(p.models):
+            t = combination_value(p, alphas, with_deep=m1, without=m2).reset_index()
+            t.insert(0, "Test", name)
+            rows.append(t)
+    if rows:
+        ht = pd.concat(rows, ignore_index=True).set_index(["Test", "Level"])
+        ht.to_csv(tdir / "hypotheses.csv")
+        flat = ht.reset_index()
+        flat.index = [f"{a} ({b})" for a, b in zip(flat["Test"], flat["Level"])]
+        flat.index.name = "Test (level)"
+        write_latex(flat.drop(columns=["Test", "Level"]), tdir / "hypotheses.tex",
+                    "Pre-registered hypothesis tests (FZ0 loss of first model minus second)", "tab:hyp",
+                    fmt={"Loss diff": "{:.4f}", "Panel DM t": "{:.2f}", "p-value": "{:.3f}",
+                         "# assets better": "{:.0f}", "# assets worse": "{:.0f}"},
+                    notes="Negative loss difference = the first model is more accurate. Panel "
+                          "Diebold--Mariano test on the cross-asset average loss differential.")
+        print("\nPre-registered hypotheses\n", ht.round(4))
 
     # Tables 3-4: backtests
     bt = run_backtests(p, alphas, ev["bootstrap_reps"])
@@ -181,15 +205,21 @@ def main() -> None:
         print("\nSeed robustness\n", sr.round(4))
 
     # Figures
-    deep_in = [m for m in (["LSTM-FZ", "GJR-LSTM", "NG-FZ"] if args.with_new else DEEP) if m in p.models]
+    deep_in = [m for m in (["LSTM-FZ", "GJRX-skt", "CTG-FZ"] if args.with_new else DEEP) if m in p.models]
     assets = p.var.index.get_level_values("asset").unique()
-    show = "SPX" if "SPX" in assets else assets[0]
+    pref = "N225" if args.with_new else "SPX"          # paper 2: overnight news matters most for Asia
+    show = pref if pref in assets else assets[0]
     eps = {k: v for k, v in {"Global financial crisis": ("2008-08-01", "2009-04-30"),
                              "COVID-19": ("2020-02-01", "2020-06-30")}.items()
            if pd.Timestamp(v[1]) >= p.var.index.get_level_values("date").min()}
-    focus = [bench] + [m for m in (("LSTM-FZ", "NG-FZ") if args.with_new else ("FZ-Hyb", "GJR-LSTM"))
+    focus = [bench] + [m for m in (("GJRX-skt", "CTG-FZ") if args.with_new else ("FZ-Hyb", "GJR-LSTM"))
                        if m in p.models]
-    plots.fig_episodes(p, show, a_main, focus, eps, fdir / "episodes", "S&P 500" if show == "SPX" else show)
+    label = {"SPX": "S&P 500", "N225": "Nikkei 225"}.get(show, show)
+    plots.fig_episodes(p, show, a_main, focus, eps, fdir / "episodes", label)
+    if {"CTG-FZ", "GJRX-skt"} <= set(p.models):
+        plots.fig_cumulative_diff(p, a_main, "GJRX-skt", ["CTG-FZ"],
+                                  {k: v for k, v in ev["subperiods"].items() if not k.startswith("Calm")},
+                                  fdir / "cumulative_ctg_vs_gjrx")
     plots.fig_cumulative_diff(p, a_main, bench, deep_in,
                               {k: v for k, v in ev["subperiods"].items() if not k.startswith("Calm")},
                               fdir / "cumulative_diff")

@@ -39,15 +39,17 @@ def to_long(model: str, asset: str, dates, alphas, var: np.ndarray, es: np.ndarr
 
 
 def run_asset(asset: str, r: pd.Series, cfg: dict, models: list[str] | None = None,
-              alphas: list[float] | None = None, verbose: bool = True) -> pd.DataFrame:
+              alphas: list[float] | None = None, verbose: bool = True,
+              estimators: list | None = None) -> pd.DataFrame:
     """Rolling forecasts for one asset; optionally only the estimators producing ``models``
-    and only the given ``alphas`` (used to parallelise the slow semiparametric models)."""
+    and only the given ``alphas`` (used to parallelise the slow semiparametric models), or an
+    explicit list of ``estimators`` (e.g. asset-specific GJR-X with cross-market regressors)."""
     tic = time.time()
     W, R = cfg["window"], cfg["econometric"]["refit_every"]
     alphas = alphas or cfg["alphas"]
     x = r.to_numpy(dtype=float)
     t_start = first_oos_index(r.index, cfg["oos_start"], W)
-    estimators = econometric_estimators(cfg)
+    estimators = estimators if estimators is not None else econometric_estimators(cfg)
     if models is not None:
         estimators = [e for e in estimators if set(e.names) & set(models)]
     blocks: dict[str, list[tuple[np.ndarray, np.ndarray]]] = {}
