@@ -28,3 +28,6 @@ paper/*.out
 paper/*.bbl
 paper/*.blg
 paper/*.synctex.gz
+
+# personal notes (kept locally)
+notes/
