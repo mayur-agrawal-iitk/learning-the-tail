@@ -1,6 +1,6 @@
 # Closest related work (novelty check, 14 Oct 2026)
 
-Status: **V** = title/authors verified from the arXiv abstract page; **S** = from search snippets only.
+Status: every entry cited in paper 1 was verified against Crossref (DOI registry) or the arXiv API on 15 Oct 2026, including the claims made about it. Entries 5, 7 and 8 are not cited and remain unverified.
 Verify every **S** entry (authors, venue, year, DOI) on the publisher page before citing.
 
 | # | Paper | Status | What they do | How we differ |
