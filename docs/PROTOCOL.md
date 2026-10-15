@@ -88,6 +88,11 @@ Ablation LSTMQ-FZ: identical to CTG-FZ v2 but with the news switched off, to sep
 the information from the value of the new objective. Selection rule: the CTG-FZ variant (v1 or v2)
 with the lower development loss at 2.5% goes to the holdout; v2 is the last CTG variant.
 
+*Bug note (15 Oct 2026).* The first v2 and ablation runs were invalid: a loop variable shadowed the
+model name, so the variant settings were not applied (both trained as v1) and the forecasts were
+mislabelled. The evaluation crashed on the mislabelled files, so no results of these runs were
+seen. The bug was fixed (with an end-to-end test), the outputs were deleted and both runs repeated.
+
 ## Rules
 * The holdout evaluation is run **once**. If a bug is found afterwards, it is fixed, the run is
   repeated, and both runs are reported.

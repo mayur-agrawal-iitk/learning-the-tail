@@ -68,3 +68,29 @@ def test_scale_head_and_news_switch():
         a, _ = off(seq, static, news, avail, tgt)
         b, _ = off(seq, static, news * 0, avail * 0, tgt)
     torch.testing.assert_close(a, b)
+
+
+def test_job_applies_the_requested_variant(tmp_path, monkeypatch):
+    """End-to-end on synthetic data: forecasts carry the variant's name and its settings are used."""
+    import numpy as np
+    import pandas as pd
+    import tailrisk.contagion as ctg
+    from tailrisk.crossmarket import overnight_news
+
+    dates = pd.bdate_range("2010-01-01", periods=1400)
+    rng = np.random.default_rng(0)
+    rets = {m: pd.Series(rng.standard_t(5, len(dates)), index=dates) for m in ("SPX", "N225")}
+    cfg = {"name": "unit", "window": 800, "alphas": ALPHAS,
+           "neural": {"lookback": 16, "scale_window": 100, "hidden": 8, "layers": 1, "dropout": 0.0,
+                      "lr": 1e-3, "weight_decay": 0.0, "batch_size": 256, "max_epochs": 1,
+                      "patience": 1, "val_frac": 0.2, "gpu_jobs": 0},
+           "contagion": {"LSTMQ-FZ": {"scale_head": True, "aux_qlike": 1.0, "use_news": False}}}
+    monkeypatch.setattr(ctg, "_gpu_lock_dir", lambda cfg: tmp_path)
+    df, info = ctg._job(dates[1000], dates[1100], 0, rets, overnight_news(rets, 100), cfg, "cpu",
+                        tmp_path / "w.pt", "LSTMQ-FZ")
+    assert set(df["model"]) == {"LSTMQ-FZ"} and info["model"] == "LSTMQ-FZ"
+    state = torch.load(tmp_path / "w.pt")["state"]
+    assert any(k.startswith("var_head") for k in state)          # scale head was built
+    import pytest
+    with pytest.raises(KeyError):
+        ctg._job(dates[1000], dates[1100], 0, rets, overnight_news(rets, 100), cfg, "cpu", None, "TYPO")

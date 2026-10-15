@@ -180,10 +180,13 @@ def _job(d0, d1, seed, rets, news, cfg, mode, save_path: Path | None = None, nam
     parts = {"train": [], "val": []}
     for f in feats.values():
         cut = int(f["n_tr"] * (1 - nc["val_frac"]))
-        for name, sl in (("train", slice(0, cut)), ("val", slice(cut, f["n_tr"]))):
-            parts[name].append({k: f[k][sl] for k in (*INPUTS, "y")})
-    stack = {n: {k: np.concatenate([p[k] for p in ps]) for k in (*INPUTS, "y")} for n, ps in parts.items()}
-    variant = cfg.get("contagion", {}).get(name, {})
+        for part, sl in (("train", slice(0, cut)), ("val", slice(cut, f["n_tr"]))):
+            parts[part].append({k: f[k][sl] for k in (*INPUTS, "y")})
+    stack = {part: {k: np.concatenate([p[k] for p in ps]) for k in (*INPUTS, "y")} for part, ps in parts.items()}
+    variants = cfg.get("contagion", {})
+    if variants and name not in variants:
+        raise KeyError(f"model {name!r} not defined in the config's contagion section")
+    variant = variants.get(name, {})
     net, info = train_ctg(stack["train"], stack["val"], len(markets), alphas, nc, seed, device, variant)
     if save_path is not None:
         torch.save({"state": net.state_dict(), "markets": markets}, save_path)
