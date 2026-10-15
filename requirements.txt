@@ -1,0 +1,17 @@
+# Core
+numpy>=1.26,<2.1
+pandas>=2.2
+scipy>=1.13
+arch>=7.0
+numba>=0.60
+pyarrow>=15
+pyyaml>=6
+requests>=2.31
+joblib>=1.4
+matplotlib>=3.8
+pytest>=8
+
+# Deep learning. For GPU training on older NVIDIA drivers (CUDA 11.x) install the CUDA 11.8 build:
+#   pip install torch==2.7.1 --index-url https://download.pytorch.org/whl/cu118
+# With a recent driver (>= 528) any current CUDA 12 build works; CPU-only also works.
+torch>=2.3

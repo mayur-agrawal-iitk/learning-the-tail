@@ -1,0 +1,72 @@
+The evaluation sample contains 62{,}206 asset-days per model and risk level (about 5{,}200 per index). We report results for $\alpha=2.5\%$, the FRTB level, in the main text and those for $1\%$ and $5\%$ in the appendix. Conclusions are the same at all three levels unless stated.
+
+\subsection{Average FZ0 loss}
+Table~\ref{tab:loss_a025} reports average FZ0 losses relative to GJR-GARCH with skewed-$t$ innovations (GJR-skt), the standard industry benchmark. Figure~\ref{fig:heatmap} shows the same comparison asset by asset. Three groups emerge.
+
+\emph{Clear losers.} Historical simulation, GARCH with Gaussian or symmetric Student-$t$ innovations, and the two score-driven FZ-GAS models are significantly worse than GJR-skt. The panel Diebold--Mariano statistics range from 4.0 to 6.4. FZ-1F loses in all twelve markets. Its risk level is updated substantially only after a VaR violation, which at $\alpha=2.5\%$ happens about once every 40 days, so it adapts slowly when volatility rises without an immediate violation. This underperformance is not an estimation artefact. Even at the in-sample optimum of an intensive 300-start search, GJR-skt attains a lower in-sample FZ0 loss in most windows (Appendix~\ref{app:v1}).
+
+\emph{A statistically indistinguishable top group.} GJR-skt, FHS, GARCH-EVT and the pure LSTM (LSTM-FZ) differ by at most 0.004 in average loss, and no pairwise difference with GJR-skt is significant. At $\alpha=1\%$, LSTM-FZ has the lowest average loss of any single model. This is notable because LSTM-FZ receives only standardised past returns and must learn volatility clustering, leverage and tail shape from the data. A pooled, FZ0-trained recurrent network thus reaches the accuracy of the best econometric models. That contrasts with evidence that LSTM \emph{volatility} models lose to GARCH on similar data \citep{amjad2026neural}. The Transformer (TRF-FZ) is worse than the LSTM at every level, and the hybrid (GJR-LSTM) is not significantly different from GJR-skt.
+
+\emph{The combination.} The pre-specified equal-weight combination of all econometric and deep models (COMB-All) has the lowest average loss and the best mean rank at all three levels. It is significantly better than GJR-skt at $2.5\%$ (panel DM $t=-2.05$) and is never significantly worse in any market.
+
+\input{tables/loss_summary_a025}
+
+\begin{figure}[htbp]\centering
+\includegraphics[width=\textwidth]{figures/heatmap_a025.pdf}
+\caption{Average FZ0 loss difference from GJR-skt by asset, $\alpha=2.5\%$ (blue: lower loss).}\label{fig:heatmap}
+\end{figure}
+
+\subsection{Do the deep models add information?}
+The cleanest test compares the two pre-specified combinations, which differ only in whether the three deep models are included. Table~\ref{tab:combo} shows that adding them lowers the loss at every risk level, with panel DM statistics between $-4.7$ and $-5.3$. The improvement is significant in 10 or 11 of the 12 markets and is never significantly negative. Figure~\ref{fig:combo} shows that the gain accumulates steadily over twenty years. It is not driven by a single episode: it is present before, during and after the global financial crisis and through the calm 2013--2019 period. A large part also comes after the COVID-19 shock. The deep models therefore contain information about tail risk that the econometric models, even averaged together, do not. This is our main finding. On their own the networks only match the best benchmarks, but they are \emph{complementary} to them.
+
+\input{tables/combination_value}
+
+\begin{figure}[htbp]\centering
+\includegraphics[width=\textwidth]{figures/cumulative_combo.pdf}
+\caption{Cumulative FZ0 loss of COMB-All minus COMB-Econ (cross-asset average), $\alpha=2.5\%$. A downward slope means that adding the deep models to the combination lowers the loss.}\label{fig:combo}
+\end{figure}
+
+\subsection{Model confidence sets}
+Table~\ref{tab:mcs} confirms the ranking. LSTM-FZ is the only single model contained in the 90\% MCS for all 36 asset--level combinations, and COMB-All is the only model in the pooled MCS with $p=1$ at every level. At $2.5\%$ the pooled MCS is $\{$COMB-All, LSTM-FZ, GJR-skt, FHS, GARCH-EVT$\}$. COMB-Econ has essentially the same average loss as GJR-skt yet is excluded from every pooled MCS. The reason is that its loss differential to COMB-All is small but extremely stable, so it is estimated very precisely.
+
+\input{tables/mcs_summary}
+
+\subsection{Calibration}
+Table~\ref{tab:bt_a025} reports absolute backtests. Accuracy and calibration rank models differently. GARCH-EVT and FHS are the best-calibrated models: their violation rates are within 0.1 percentage points of nominal, and they are rarely rejected by any VaR or ES test. The deep models are slightly less conservative, with violation rates of 2.79--2.80\% at the 2.5\% level. They are rejected more often by the coverage and calibration tests, and the Transformer is rejected by the dynamic-quantile test in all twelve markets. This indicates that its forecasts react too slowly to new information. All models have negative Acerbi--Szekely $Z_2$, i.e.\ a slight tendency to understate ES. The tendency is smallest for GARCH-EVT, FHS and COMB-All. COMB-All has a violation rate of 2.67\% and is rejected by the unconditional and conditional coverage tests in no market. The combination therefore inherits the accuracy of the deep models without their calibration weaknesses.
+
+\input{tables/backtests_a025}
+
+\subsection{Crisis periods}
+Table~\ref{tab:sub} and Figure~\ref{fig:cumdiff} show where the deep models gain and lose. LSTM-FZ accumulates a steady advantage over GJR-skt in calm and moderately volatile periods (2013--2019 and the euro-area crisis), and gives much of it back in a few days in March 2020. The COVID-19 crash was the fastest volatility increase in the sample, and GARCH-type recursions, which react to every squared return, adapted faster than networks trained on the previous eight years. The Transformer has its two largest losses in February 2018 (``Volmageddon'') and March 2020, both sudden volatility spikes. The hybrid, whose scale comes from GARCH, loses far less in March 2020 (0.12 against 0.35 for LSTM-FZ). None of the deep models' or combinations' crisis-period differences is significant at 5\%, because these windows are short. Figure~\ref{fig:episodes} illustrates the forecasts during the global financial crisis and the COVID-19 crash.
+
+\input{tables/subperiods}
+
+\begin{figure}[htbp]\centering
+\includegraphics[width=\textwidth]{figures/cumulative_diff.pdf}
+\caption{Cumulative FZ0 loss of each deep model minus GJR-skt (cross-asset average), $\alpha=2.5\%$. Shaded: crisis subperiods.}\label{fig:cumdiff}
+\end{figure}
+
+\begin{figure}[htbp]\centering
+\includegraphics[width=\textwidth]{figures/episodes.pdf}
+\caption{S\&P 500 daily returns and 2.5\% VaR forecasts of GJR-skt, FZ-Hyb and GJR-LSTM during the global financial crisis and the COVID-19 crash.}\label{fig:episodes}
+\end{figure}
+
+\subsection{A regulatory view}
+Table~\ref{tab:reg} translates forecasts into the two quantities a bank cares about. The first is the level of the 97.5\% ES, the FRTB capital measure. The second is the Basel traffic light for 99\% VaR backtesting. GARCH-EVT is the most conservative model: it has the highest average ES and the fewest days in the yellow and red zones. COMB-All requires 2.2\% less capital than GJR-skt (3.17\% against 3.24\% of position value). Its traffic-light record is essentially identical (16.9\% against 16.7\% of days in the yellow zone, 0.24\% against 0.26\% in the red zone). The individual deep models need similar or slightly less capital (3.15--3.19\%), but they spend 2.5--3 times as many days in the red zone as GJR-skt.
+
+\input{tables/regulatory}
+
+\subsection{What does the hybrid learn?}
+Figure~\ref{fig:tail} plots the ES/VaR ratio implied by each model, a scale-free measure of tail heaviness. In GARCH-$t$ and GJR-skt it moves only through re-estimated shape parameters. Over 2006--2026 these drift upward from 1.25 to 1.35, as the rolling window absorbs more crash days. The hybrid's ratio is far more variable. It falls well below the parametric ratios during the calm 2012--2019 period, which means thinner standardised tails than the skewed-$t$ implies. It rises sharply after 2020 and stays above them during 2023--2024. The network therefore learns economically interpretable variation in tail shape. That this variation does not translate into significantly better forecasts suggests that, at a daily horizon and with returns alone, the predictable component of tail shape beyond volatility is small.
+
+\begin{figure}[htbp]\centering
+\includegraphics[width=\textwidth]{figures/tail_ratio.pdf}
+\caption{Model-implied ES/VaR at $\alpha=2.5\%$ (cross-asset median, 21-day moving average). The grey line is the Gaussian value 1.193.}\label{fig:tail}
+\end{figure}
+
+\subsection{Robustness}
+\paragraph{Seeds.} Table~\ref{tab:seeds} compares single networks with the three-seed ensembles. For LSTM-FZ, average losses across seeds differ by up to 0.007. That is larger than the differences among the four best models, so comparisons based on a single trained network would be unreliable. The ensemble is better than every individual seed for LSTM-FZ, and better than all but one for the other two models.
+
+\paragraph{Specification revisions.} Two choices were revised after the first full run: the initialisation of the networks' output head and the optimiser for the semiparametric models (Appendix~\ref{app:v1}). Neither revision changes any conclusion. COMB-All is best, LSTM-FZ matches the top econometric models, and the FZ-GAS models underperform in both runs.
+
+\input{tables/seed_robustness}

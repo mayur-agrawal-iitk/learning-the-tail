@@ -1,0 +1,29 @@
+# environments and caches
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# logs and scratch
+logs/
+*.tmp
+
+# raw market data (Yahoo Finance terms do not allow redistribution; re-download with scripts/download_data.py)
+data/raw/
+
+# large or regenerable model outputs (rerun the pipeline to recreate)
+*.parquet
+*.pt
+results/quick/
+results/*/.gpu_slots/
+**/nn_jobs/
+**/ng_jobs/
+**/ng_models/
+
+# LaTeX build artefacts (main.pdf is kept)
+paper/*.aux
+paper/*.log
+paper/*.out
+paper/*.bbl
+paper/*.blg
+paper/*.synctex.gz

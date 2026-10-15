@@ -1,0 +1,9 @@
+[project]
+name = "tailrisk"
+version = "0.1.0"
+description = "Deep learning for joint Value-at-Risk and Expected Shortfall forecasting"
+requires-python = ">=3.10"
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

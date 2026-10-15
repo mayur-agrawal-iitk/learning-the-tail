@@ -1,0 +1,246 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb,amsthm,bm}
+\usepackage{booktabs,graphicx,caption,subcaption}
+\usepackage[authoryear,round]{natbib}
+\usepackage[hidelinks]{hyperref}
+\usepackage{xcolor}
+\usepackage{setspace}
+\onehalfspacing
+
+\newtheorem{proposition}{Proposition}
+\newtheorem{lemma}{Lemma}
+\newtheorem{definition}{Definition}
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+\newcommand{\1}{\mathbf{1}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\F}{\mathcal{F}}
+\newcommand{\VaR}{\mathrm{VaR}}
+\newcommand{\ES}{\mathrm{ES}}
+\newcommand{\todo}[1]{\textcolor{red}{[TODO: #1]}}
+
+\title{Learning the Tail: Deep Joint Forecasting of Value-at-Risk and Expected Shortfall with Strictly Consistent Scoring Functions}
+\author{Mayur Agrawal\thanks{Department of Computer Science and Engineering and Department of Economic Sciences, Indian Institute of Technology Kanpur, Kanpur 208016, India. Email: \href{mailto:mayurag22@iitk.ac.in}{mayurag22@iitk.ac.in}. Code and data pipeline: \todo{repository URL}.}}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\input{sections/abstract}
+\end{abstract}
+
+\noindent\textbf{Keywords:} Expected Shortfall, Value-at-Risk, elicitability, deep learning, LSTM, GARCH, extreme value theory, forecast evaluation.\\
+\noindent\textbf{JEL:} C22, C45, C52, C53, G17, G32.
+
+%==============================================================================
+\section{Introduction}\label{sec:intro}
+%==============================================================================
+
+Since the Fundamental Review of the Trading Book, the Basel framework measures market risk with the 97.5\% Expected Shortfall (ES) rather than the 99\% Value-at-Risk (VaR) \citep{bcbs2019frtb}. ES is coherent \citep{artzner1999coherent} and, unlike VaR, it is sensitive to the size of losses beyond the quantile. Forecasting ES, however, raises a statistical problem that VaR does not: ES is not \emph{elicitable} \citep{gneiting2011making}. There is no loss function whose expected value is minimised by the true ES, so ES forecasts cannot be estimated or ranked by minimising an average loss in the way that quantiles are with the pinball loss. \citet{fissler2016higher} showed that the \emph{pair} (VaR, ES) is jointly elicitable and characterised the class of strictly consistent scoring functions for it. \citet{patton2019dynamic} then used one member of that class, the FZ0 loss, to estimate semiparametric dynamic models for VaR and ES.
+
+The same result has a direct implication for machine learning that has been less explored. A strictly consistent scoring function is exactly what is needed to train a flexible function approximator by empirical risk minimisation. A neural network trained on the FZ0 loss is a nonparametric M-estimator of the conditional (VaR, ES) pair. It needs no distributional assumption and no separate quantile and tail-mean steps. This paper asks a simple question: \emph{once evaluated with a strictly consistent scoring function and the standard battery of regulatory backtests, do deep sequence models forecast tail risk better than state-of-the-art econometric models?}
+
+We answer it with a large, carefully controlled out-of-sample experiment. We forecast one-day-ahead VaR and ES at $\alpha\in\{1\%,2.5\%,5\%\}$ for twelve equity indices from developed and emerging markets over 2006--2026. This period contains the global financial crisis, the euro-area crisis, the COVID-19 crash and the 2022 inflation shock. We compare three deep models with nine benchmarks. The benchmarks span the three main approaches in the literature: parametric location-scale models (GARCH, GJR-GARCH with Student-$t$ and skewed-$t$ innovations), semi-parametric tail estimators (filtered historical simulation, GARCH-EVT), and dynamic semiparametric models estimated by FZ0 minimisation (CAViaR-ES, FZ-GAS and its hybrid). All models use the same information set (past daily returns only) and the same rolling estimation window.
+
+\paragraph{Contributions.}
+\begin{enumerate}
+\item \emph{Methodology.} We show how to train deep networks directly on the FZ0 loss and pool data across assets. We prove that, because FZ0 loss differences are invariant to scale, training on volatility-standardised returns is exactly equivalent to training on raw returns (Proposition~\ref{prop:scale}). We also design an output layer that guarantees $\ES_t\le\VaR_t<0$ and non-crossing across risk levels by construction (Proposition~\ref{prop:head}).
+\item \emph{A hybrid model.} We propose a GJR-GARCH--LSTM hybrid in which the GARCH filter handles the volatility scale and the network learns a time-varying conditional \emph{tail shape}. This nonparametric counterpart of autoregressive conditional density models \citep{hansen1994autoregressive} is interpretable through the implied ES/VaR ratio.
+\item \emph{Evidence.} We provide a comprehensive evaluation that combines absolute tests (coverage, independence, dynamic-quantile and three ES backtests) with relative tests (panel Diebold--Mariano and the Model Confidence Set). The evaluation includes crisis subperiods, seed-ensemble robustness and pre-specified forecast combinations. The main finding is that deep models trained on FZ0 match the best econometric models and are complementary to them.
+\end{enumerate}
+
+\paragraph{Preview of results.} A pooled LSTM that sees only past returns is statistically indistinguishable from GJR-GARCH with skewed-$t$ innovations, filtered historical simulation and GARCH-EVT, the best econometric models. It is the only single model in the 90\% model confidence set for all 36 market--risk-level combinations. Adding the three deep models to an equal-weight combination of the econometric models significantly lowers the FZ0 loss at every risk level (panel Diebold--Mariano $t$ between $-4.7$ and $-5.3$). The gain is significant in 10 or 11 of 12 markets and accumulates steadily over twenty years. That combination is the best model in the study. At the same Basel traffic-light record it requires about 2\% less capital than GJR-GARCH. The deep models' weaknesses are interpretable: they are slightly less conservative than the best econometric models, and they adapt more slowly to sudden volatility spikes such as March 2020. The score-driven FZ-GAS models of \citet{patton2019dynamic} underperform in our sample, even with a carefully verified estimator.
+
+%==============================================================================
+\section{Related literature}\label{sec:lit}
+%==============================================================================
+
+\paragraph{Elicitability and ES.} \citet{gneiting2011making} showed that ES fails the convex-level-set condition necessary for elicitability. \citet{fissler2016higher} established joint elicitability of (VaR, ES), and \citet{nolde2017elicitability} drew out the implications for backtesting and regulation. They distinguish \emph{comparative} backtests based on consistent scores from traditional \emph{calibration} tests. \citet{ziegel2020robust} study how rankings depend on the choice of scoring function within the consistent class.
+
+\paragraph{Econometric models for VaR and ES.} Location-scale models with GARCH-type volatility \citep{bollerslev1986garch,glosten1993relation} and flexible innovation densities \citep{hansen1994autoregressive} remain the industry workhorse. Filtered historical simulation \citep{baroneadesi1999var} and the GARCH-EVT approach of \citet{mcneil2000estimation} replace the parametric innovation tail by an empirical or generalised Pareto tail. Quantile-based models model VaR dynamics directly \citep{engle2004caviar} and were extended to ES by \citet{taylor2019forecasting} and \citet{patton2019dynamic}. The latter introduced score-driven \citep{creal2013generalized} dynamics derived from the FZ0 loss.
+
+\paragraph{Machine learning for risk.} Neural networks were used early for quantile forecasting \citep{taylor2000quantile}. More recent studies find gains from machine learning for volatility forecasting \citep{bucci2020realized,christensen2023machine} and for return prediction \citep{gu2020empirical}. For tail risk specifically, \citet{li2021bayesian} embed an LSTM in an ES-CAViaR model estimated by Bayesian MCMC. Recurrent ``stateful'' networks have been evaluated with the FZ0 loss on a small set of assets \citep{stateful2024rnn}. \citet{zhang2026resga} train a large cross-sectional model on monthly U.S.\ stock returns with firm characteristics. The evidence for daily index-level risk is mixed. \citet{amjad2026neural} study twelve global indices over 2000--2026 and find that a GARCH benchmark beats an LSTM volatility model in ten of twelve markets. A GARCH--GRU hybrid improves volatility forecasts without improving VaR or ES \citep{garchgru2023}. Two features of this evidence motivate our design. First, the neural models are typically trained on volatility or likelihood losses rather than on a scoring function that is strictly consistent for (VaR, ES). Second, in parametric location-scale models the ES/VaR ratio is fixed by the innovation distribution, so time variation in tail \emph{shape} cannot be captured \citep{dfsm2026}. We train sequence models \citep{hochreiter1997long,vaswani2017attention} directly on FZ0. We show that pooling across markets is exact under scale standardisation. We propose a hybrid that learns the tail shape on top of a GARCH scale. Finally, we compare all of these against the strongest semiparametric benchmarks with formal inference.
+
+%==============================================================================
+\section{Theoretical framework}\label{sec:theory}
+%==============================================================================
+
+\subsection{Risk measures}
+Let $r_t$ be the daily log return (in percent) and $\F_{t-1}$ the information available at the end of day $t-1$. Denote by $F_t$ the conditional distribution of $r_t$ given $\F_{t-1}$, assumed continuous with finite mean. We work with the lower tail and keep signs, so that both risk measures are negative numbers:
+\begin{equation}
+v_t \equiv \VaR_t^\alpha = F_t^{-1}(\alpha),\qquad
+e_t \equiv \ES_t^\alpha = \frac{1}{\alpha}\int_0^\alpha F_t^{-1}(u)\,du = \E\left[r_t \mid r_t\le v_t,\F_{t-1}\right].
+\end{equation}
+For every $\alpha$, $e_t\le v_t$. Moreover, $\alpha\mapsto v_t^\alpha$ and $\alpha\mapsto e_t^\alpha$ are nondecreasing, the latter because $e_t^\alpha$ is the average of the nondecreasing function $F_t^{-1}$ over $[0,\alpha]$.
+
+\subsection{Elicitability and the FZ0 loss}
+\begin{definition}
+A scoring function $S(x,y)$ is \emph{strictly consistent} for a functional $T$ relative to a class $\mathcal{P}$ of distributions if $\E_F[S(T(F),Y)]<\E_F[S(x,Y)]$ for all $F\in\mathcal{P}$ and all $x\neq T(F)$. $T$ is \emph{elicitable} if such an $S$ exists.
+\end{definition}
+The $\alpha$-quantile is elicitable with the pinball loss $(\1\{y\le v\}-\alpha)(v-y)$. ES is not \citep{gneiting2011making}. \citet{fissler2016higher} show that, under regularity conditions, every scoring function of the form
+\begin{equation}\label{eq:fzclass}
+L(y,v,e)=(\1\{y\le v\}-\alpha)\bigl(G_1(v)-G_1(y)\bigr)+G_2(e)\Bigl(e-v+\tfrac{1}{\alpha}\1\{y\le v\}(v-y)\Bigr)-\mathcal{G}_2(e),
+\end{equation}
+with $G_1$ increasing and $\mathcal{G}_2$ strictly increasing and strictly convex ($\mathcal{G}_2'=G_2$), is strictly consistent for $(\VaR^\alpha,\ES^\alpha)$. Choosing $G_1=0$ and $\mathcal{G}_2(e)=-\log(-e)$ on $e<0$ gives the FZ0 loss of \citet{patton2019dynamic}:
+\begin{equation}\label{eq:fz0}
+L_{\alpha}(y,v,e)=-\frac{1}{\alpha e}\1\{y\le v\}(v-y)+\frac{v}{e}+\log(-e)-1 .
+\end{equation}
+The following self-contained argument shows directly why \eqref{eq:fz0} elicits the pair.
+
+\begin{proposition}[Consistency of FZ0]\label{prop:consistency}
+Let $Y\sim F$ with $F$ continuous and strictly increasing at $q=F^{-1}(\alpha)$, $\E|Y|<\infty$, and $\ES^\alpha(F)<0$. Then $(v,e)\mapsto\E L_\alpha(Y,v,e)$ on $\mathbb{R}\times(-\infty,0)$ has the unique minimiser $(q,\ES^\alpha(F))$, and the minimum value is $\log(-\ES^\alpha(F))$.
+\end{proposition}
+\begin{proof}
+Write $\E L_\alpha(Y,v,e)=Q(v)/(-e)+\log(-e)-1$ with $Q(v)=\alpha^{-1}\E[(v-Y)^+]-v$. $Q$ is convex with derivative $Q'(v)=F(v)/\alpha-1$, which vanishes only at $v=q$. Since $\E[\1\{Y\le q\}Y]=\alpha\ES^\alpha$, $Q(q)=-\ES^\alpha>0$. Because $1/(-e)>0$, for every fixed $e<0$ the expected loss is uniquely minimised in $v$ at $q$, independently of $e$. Substituting, with $x=-e>0$ and $c=-\ES^\alpha>0$, we must minimise $h(x)=c/x+\log x-1$. Since $h'(x)=(x-c)/x^2$, the unique minimiser is $x=c$, i.e.\ $e=\ES^\alpha$, and $h(c)=\log c$.
+\end{proof}
+
+\begin{remark}
+The minimal expected score $\log(-\ES_t)$ depends on the level of risk. Average FZ0 losses are therefore not comparable \emph{across} assets in levels, but loss \emph{differences} between models are (Proposition~\ref{prop:scale}). All our comparisons are based on differences.
+\end{remark}
+
+\begin{proposition}[Scale equivariance and pooled training]\label{prop:scale}
+For every $c>0$, $L_\alpha(cy,cv,ce)=L_\alpha(y,v,e)+\log c$. Consequently, if $s_t>0$ is $\F_{t-1}$-measurable and a model forecasts $(v_t,e_t)=s_t(\tilde v_t,\tilde e_t)$, then
+\[
+\sum_{i,t}L_\alpha\bigl(r_{it},s_{it}\tilde v_{it},s_{it}\tilde e_{it}\bigr)=\sum_{i,t}L_\alpha\bigl(r_{it}/s_{it},\tilde v_{it},\tilde e_{it}\bigr)+\sum_{i,t}\log s_{it}.
+\]
+The last term does not depend on the model parameters. Minimising the pooled FZ0 risk on standardised targets $r_{it}/s_{it}$ therefore yields the same estimator, with identical gradients, as minimising it on raw returns, and each asset-day enters with equal weight.
+\end{proposition}
+\begin{proof}
+Substitute into \eqref{eq:fz0}: the first two terms are homogeneous of degree zero in $(y,v,e)$, and $\log(-ce)=\log c+\log(-e)$.
+\end{proof}
+FZ0 is \emph{not} translation equivariant. We therefore standardise by scale only and never subtract a location (Section~\ref{sec:deep}).
+
+\subsection{Identification and calibration}
+The identification function of the pair is
+\begin{equation}\label{eq:ident}
+V(y,v,e)=\begin{pmatrix}\1\{y\le v\}-\alpha\\[2pt] e-v+\frac{1}{\alpha}\1\{y\le v\}(v-y)\end{pmatrix},
+\qquad \E\bigl[V(r_t,v_t,e_t)\mid\F_{t-1}\bigr]=0
+\end{equation}
+at the true forecasts. Any $\F_{t-1}$-measurable instrument $h_t$ yields testable moment conditions $\E[h_t\otimes V_t]=0$. This is the basis of the conditional calibration test in Section~\ref{sec:eval} \citep{nolde2017elicitability}.
+
+%==============================================================================
+\section{Models}\label{sec:models}
+%==============================================================================
+
+All models produce one-step-ahead forecasts $(v_t^\alpha,e_t^\alpha)$ for $\alpha\in\{0.01,0.025,0.05\}$ from $\{r_s\}_{s<t}$.
+
+\subsection{Location-scale benchmarks}
+Write $r_t=\mu+\sigma_tz_t$ with $z_t$ i.i.d., zero mean and unit variance, and GJR-GARCH(1,1,1) variance \citep{glosten1993relation}
+\begin{equation}
+\sigma_t^2=\omega+\bigl(a+g\,\1\{\varepsilon_{t-1}<0\}\bigr)\varepsilon_{t-1}^2+b\,\sigma_{t-1}^2,\qquad \varepsilon_t=r_t-\mu ,
+\end{equation}
+which nests GARCH(1,1) when $g=0$ \citep{bollerslev1986garch}. Then $v_t=\mu+\sigma_tq_\alpha$ and $e_t=\mu+\sigma_t\,\mathrm{ES}_\alpha(z)$. The models differ in how they obtain the standardised tail $(q_\alpha,\mathrm{ES}_\alpha(z))$:
+\begin{itemize}
+\item \textbf{GARCH-N, GARCH-t, GJR-skt}: maximum likelihood with Gaussian, Student-$t$ or \citet{hansen1994autoregressive} skewed-$t$ innovations. The innovation ES is computed exactly from the partial moment, $\mathrm{ES}_\alpha(z)=\alpha^{-1}\int_{-\infty}^{q_\alpha}x\,f(x)\,dx$.
+\item \textbf{FHS} \citep{baroneadesi1999var}: Gaussian quasi-MLE of GJR-GARCH; $(q_\alpha,\mathrm{ES}_\alpha)$ are the empirical quantile and tail mean of the in-sample standardised residuals.
+\item \textbf{GARCH-EVT} \citep{mcneil2000estimation}: the same filter, with a generalised Pareto distribution fitted by maximum likelihood to the largest 10\% of standardised losses $x=-z$. With threshold $u$, $N_u$ exceedances out of $n$ and GPD parameters $(\xi,\beta)$,
+\begin{equation}
+\widehat{\VaR}_\alpha(x)=u+\frac{\beta}{\xi}\Bigl[\Bigl(\frac{n\alpha}{N_u}\Bigr)^{-\xi}-1\Bigr],\qquad
+\widehat{\ES}_\alpha(x)=\frac{\widehat{\VaR}_\alpha(x)}{1-\xi}+\frac{\beta-\xi u}{1-\xi}.
+\end{equation}
+\end{itemize}
+\textbf{HS} uses the empirical quantile and tail mean of the last 250 returns.
+
+\subsection{Semiparametric dynamic benchmarks}
+These models specify only the dynamics of $(v_t,e_t)$ and are M-estimated by minimising the in-sample average FZ0 loss.
+
+\paragraph{CAViaR-ES.} Asymmetric-slope CAViaR \citep{engle2004caviar} with ES proportional to VaR \citep{taylor2019forecasting}:
+\[
+v_t=\omega+\beta v_{t-1}-\theta_p r_{t-1}^+-\theta_n r_{t-1}^-,\qquad e_t=(1+e^{\gamma})v_t .
+\]
+
+\paragraph{FZ-GAS.} \citet{patton2019dynamic} set $v_t=a\exp(\kappa_t)$, $e_t=b\exp(\kappa_t)$ with $b<a<0$, and drive $\kappa_t$ by the score of FZ0.
+\begin{lemma}\label{lem:score}
+Under this parametrisation, $\partial L_\alpha(r_t,v_t,e_t)/\partial\kappa_t=1-\1\{r_t\le v_t\}\,r_t/(\alpha e_t)$, which has conditional mean zero when $(v_t,e_t)$ is correctly specified.
+\end{lemma}
+\begin{proof}
+$\partial L/\partial v=e^{-1}(1-\alpha^{-1}\1\{y\le v\})$ and $\partial L/\partial e=(\alpha e^2)^{-1}\1\{y\le v\}(v-y)-v/e^2+1/e$. With $\partial v/\partial\kappa=v$ and $\partial e/\partial\kappa=e$, summing gives $1-\1\{y\le v\}y/(\alpha e)$. At the truth, $\E_{t-1}[\1\{r_t\le v_t\}r_t]=\alpha e_t$.
+\end{proof}
+Setting $\lambda_t=-\partial L/\partial\kappa_t=\alpha^{-1}\1\{r_t\le v_t\}r_t/e_t-1$, the one-factor model (FZ-1F) is $\kappa_{t+1}=\beta\kappa_t+\gamma\lambda_t$. On days without a violation $\lambda_t=-1$ and risk decays. After a violation, $\lambda_t$ jumps by roughly $1/\alpha$ times the relative size of the loss. The hybrid model (FZ-Hyb) adds a GARCH-like term, $\kappa_{t+1}=\beta\kappa_t+\gamma\lambda_t+\delta\log|r_t|$. We impose the sign restrictions $\gamma,\delta\ge0$, $0\le\beta<1$, and, for CAViaR, $\omega<0$ and $\theta_p,\theta_n\ge0$. These are implied by the economic interpretation and also guarantee $v_t<0$. In pilot runs without them, the optimiser occasionally selected $\gamma<0$ at $\alpha=1\%$ (risk \emph{falling} after a violation). That fits marginally better in sample, where only 10--20 violations are observed, but it is self-reinforcing out of sample and drove VaR to zero during the COVID-19 crash.
+
+\paragraph{Estimation.} The FZ0 objective is piecewise smooth with kinks at every violation, and local optimisers stall at them. For each window and $\alpha$ we score a deterministic grid of starting values and the previous window's optimum. We add 60 random perturbations around the best of these and run Nelder--Mead from the three best candidates, each polished with Powell's method. On nine test windows this procedure comes within 0.005--0.01 of the in-sample optimum found by a 300-start search, and sometimes improves on it. A simpler grid-plus-Nelder--Mead procedure, used in our first run, left gaps of up to 0.04. Benchmarks estimated that poorly would understate the semiparametric models, so all results use the stronger procedure (Appendix~\ref{app:v1}).
+
+\subsection{Deep models}\label{sec:deep}
+\paragraph{Pure sequence models (LSTM-FZ, TRF-FZ).} Let $s_t=\bigl(\frac{1}{250}\sum_{j=1}^{250}r_{t-j}^2\bigr)^{1/2}$ be a slow scale. The input is the sequence $\{(x_{t-j},|x_{t-j}|)\}_{j=1}^{L}$ with $x_{t-j}=r_{t-j}/s_t$, $L=64$, plus $\log s_t$. Because $s_t$ moves slowly, the network must learn volatility clustering from the inputs itself. The encoder is an LSTM \citep{hochreiter1997long} or a pre-norm Transformer \citep{vaswani2017attention} that reads the last position. Its output, with $\log s_t$ appended, feeds the head below and gives standardised forecasts, which are rescaled by $s_t$.
+
+\paragraph{Hybrid (GJR-LSTM).} A GJR-GARCH-$t$ fitted on the training window supplies $\sigma_t$. The LSTM receives the standardised residuals $z_{t-j}=(r_{t-j}-\mu)/\sigma_{t-j}$ and the volatility state $(\log\sigma_t,\log(\sigma_t/s_t))$, and predicts the (VaR, ES) of $r_t/\sigma_t$. Hence $v_t=\sigma_tq_t$ and $e_t=\sigma_t\varsigma_t$, where $(q_t,\varsigma_t)$ is a learned, time-varying tail shape. When $(q_t,\varsigma_t)$ is constant the model collapses to a GARCH model with a fixed innovation distribution. The ratio $e_t/v_t\approx\varsigma_t/q_t$ is a model-implied measure of tail heaviness.
+
+\paragraph{Monotone output head.} Order the levels $\alpha_1<\dots<\alpha_K$. The final layer outputs $u\in\mathbb{R}^{2K}$, and with $g=\mathrm{softplus}(u)+g_{\min}$:
+\begin{equation}\label{eq:head}
+v_K=-g^v_K,\quad v_k=v_{k+1}-g^v_k,\qquad e_K=v_K-g^e_K,\quad e_k=\min(v_k,e_{k+1})-g^e_k .
+\end{equation}
+\begin{proposition}\label{prop:head}
+For every input, the outputs of \eqref{eq:head} satisfy $e_k<v_k<0$, $v_1<\dots<v_K$ and $e_1<\dots<e_K$.
+\end{proposition}
+\begin{proof}
+All gaps are at least $g_{\min}>0$. $v_K<0$, and each $v_k$ is $v_{k+1}$ minus a positive gap. $e_K<v_K$, and $e_k<\min(v_k,e_{k+1})$ gives both $e_k<v_k$ and $e_k<e_{k+1}$.
+\end{proof}
+These are properties of the true functionals (Section~\ref{sec:theory}), so the constraint removes no correct model from the hypothesis class.
+
+\paragraph{Initialisation and the early-stopping fallback.} The bias of the last layer is set so that, with zero last-layer weights, the network outputs the empirical $(\VaR,\ES)$ of the pooled standardised training targets at each $\alpha$. This initial model matters more than usual. Early stopping returns it whenever no epoch improves the validation loss, which happens in calm validation windows. With this choice the fallback is an unconditional historical-simulation tail on the standardised scale, i.e.\ an FHS-type model for the hybrid. Our first run initialised at standard-normal values instead. For the hybrid it fell back to the initial model in two of 21 refit years (2014 and 2024, all three seeds). In those years it reverted to a thin-tailed Gaussian model and understated ES. We diagnosed this from the training log, adopted the empirical initialisation as the main specification, and report the original run in Appendix~\ref{app:v1}.
+
+\paragraph{Training.} The objective is $\sum_kL_{\alpha_k}$, averaged over the pooled sample of all assets. By Proposition~\ref{prop:scale} it is computed on standardised targets. We use AdamW \citep{loshchilov2019decoupled}, gradient clipping and early stopping on a time-ordered validation split (the last 20\% of each asset's window). Networks are re-trained at the start of every calendar year on each asset's last $W=2000$ observations. Three seeds are averaged into a deep ensemble \citep{lakshminarayanan2017simple}. Averaging preserves the constraints of Proposition~\ref{prop:head}. Hyperparameters are listed in Appendix~\ref{app:hyper}. They were fixed before the out-of-sample evaluation and not tuned on it.
+
+\subsection{Forecast combinations}
+We add two equal-weight combinations, \textbf{COMB-Econ} (all econometric models except HS) and \textbf{COMB-All} (those plus the three deep models). Both were specified before any results were inspected. Averaging $(v,e)$ pairs preserves $e\le v$.
+
+%==============================================================================
+\section{Data and forecasting design}\label{sec:data}
+%==============================================================================
+We use daily closing levels of twelve equity indices from Yahoo Finance: S\&P 500, Nasdaq Composite, Russell 2000, FTSE 100, DAX, CAC 40, Nikkei 225, Hang Seng, BSE Sensex, S\&P/ASX 200, KOSPI and Bovespa. The sample runs from January 1996 (July 1997 for the Sensex) to 30 September 2026. Returns are $r_t=100\log(P_t/P_{t-1})$. Exact-zero returns, which on this source are stale prints on local holidays, are removed (at most 13 per index). Table~\ref{tab:desc} reports descriptive statistics.
+
+\input{tables/descriptive}
+
+\paragraph{Design.} The out-of-sample period starts on 2 January 2006 and gives roughly 5{,}000 forecasts per asset and risk level. Every model is estimated on a rolling window of $W=2000$ trading days (about eight years). Econometric models are re-estimated every 21 trading days, and their filters update the forecasts daily with fixed parameters. Deep models are re-trained yearly. This disadvantages the deep models, so any gains we find for them are conservative. Every forecast for day $t$ uses only returns up to $t-1$; unit tests verify this for every model by perturbing future data. Each asset is evaluated on its own trading calendar.
+
+%==============================================================================
+\section{Evaluation methodology}\label{sec:eval}
+%==============================================================================
+\paragraph{VaR backtests.} With hits $I_t=\1\{r_t\le v_t\}$ we report the \citet{kupiec1995techniques} unconditional coverage test, the \citet{christoffersen1998evaluating} conditional coverage test, and the dynamic quantile (DQ) test of \citet{engle2004caviar}. The DQ test regresses $I_t-\alpha$ on a constant, four lags of $I_t-\alpha$ and $v_t$.
+
+\paragraph{ES backtests.} (i) The exceedance-residual test of \citet{mcneil2000estimation}: on violation days, $\xi_t=(r_t-e_t)/|e_t|$ has mean zero under the null. The one-sided alternative (ES too optimistic) is tested with a bootstrap. (ii) The $Z_2$ statistic of \citet{acerbi2014backtesting}, $Z_2=1-\sum_tr_tI_t/(T\alpha e_t)$, which has mean zero under the null and is negative when ES is underestimated. (iii) The conditional calibration test of \citet{nolde2017elicitability}: a Wald test of $\E[h_t\otimes\tilde V_t]=0$, where $\tilde V_t$ is the identification function \eqref{eq:ident} with its second component scaled by $|e_t|$. The unconditional version uses $h_t=1$; the conditional version uses $h_t=(1,|r_{t-1}|/|e_t|)'$, which has power against slow reaction to shocks. We deliberately exclude the lagged hit as an instrument. On non-violation days $(I_{t-1}V_{1t},I_{t-1}V_{2t})$ are collinear, so the covariance matrix is nearly singular, and in our simulations the test then rejected a correct model 68\% of the time at the 5\% level. With our instruments the size is 5.0\% at $n=20{,}000$, but about 9\% at $n=5{,}000$ for $\alpha=2.5\%$, so rejections near the 5\% boundary should be read with care.
+
+\paragraph{Comparative tests.} For models $A$ and $B$, let $d_{it}=L_\alpha(r_{it},v^A_{it},e^A_{it})-L_\alpha(r_{it},v^B_{it},e^B_{it})$. The \citet{diebold1995comparing} statistic uses a Newey--West long-run variance. For the cross-section we test the date-wise average $\bar d_t=N_t^{-1}\sum_id_{it}$, which accounts for cross-market dependence. The Model Confidence Set \citep{hansen2011model} uses the range statistic and a stationary bootstrap \citep{politis1994stationary} with 2{,}000 replications. It is computed per asset and on the cross-asset average loss.
+
+%==============================================================================
+\section{Results}\label{sec:results}
+%==============================================================================
+\input{sections/results}
+
+%==============================================================================
+\section{Conclusion}\label{sec:conclusion}
+%==============================================================================
+\input{sections/conclusion}
+
+\bibliographystyle{plainnat}
+\bibliography{references}
+
+\appendix
+\section{Hyperparameters and implementation}\label{app:hyper}
+\begin{table}[htbp]\centering\footnotesize
+\caption{Deep-model hyperparameters (fixed ex ante)}
+\begin{tabular}{ll}\toprule
+Input length $L$ & 64 trading days \\
+Slow scale window & 250 days \\
+Hidden size / layers & 32 / 1 (LSTM); 32 / 1 layer, 2 heads (Transformer) \\
+Head & MLP 32 units, GELU, dropout 0.1, monotone output \eqref{eq:head} \\
+Optimiser & AdamW, learning rate $10^{-3}$, weight decay $10^{-4}$, batch 512, gradient clip 1 \\
+Early stopping & patience 8 epochs (maximum 60) on the last 20\% of each training window \\
+Training sample & pooled across 12 assets, last 2000 days each ($\approx$24{,}000 sequences) \\
+Re-training & yearly; 3 seeds averaged \\
+\bottomrule\end{tabular}
+\end{table}
+All code is in Python (\texttt{numpy}, \texttt{arch}, \texttt{numba}, \texttt{PyTorch}). The full pipeline (data download, forecasting, evaluation, tables and figures) runs from four scripts. Unit tests cover the strict consistency of the loss, the size of every backtest under the null, alignment with the \texttt{arch} package, and the absence of look-ahead for every model.
+
+\section{Additional tables}
+\input{sections/appendix_tables}
+
+\section{First-run specification and revisions}\label{app:v1}
+\input{sections/appendix_v1}
+
+\end{document}

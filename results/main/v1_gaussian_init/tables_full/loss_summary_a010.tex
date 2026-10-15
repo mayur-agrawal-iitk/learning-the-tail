@@ -1,0 +1,27 @@
+\begin{table}[htbp]
+\centering
+\footnotesize
+\caption{Average FZ0 loss, $\alpha=0.01$}
+\label{tab:loss_a010}
+\begin{tabular}{lrrrrrr}
+\toprule
+Model & Avg loss & Diff vs bench & Panel DM t & \# better & \# worse & Mean rank \\
+\midrule
+HS & 1.6353 & 0.3002 & 4.46 & 0 & 12 & 14.0 \\
+GARCH-N & 1.4708 & 0.1372 & 4.74 & 0 & 10 & 12.3 \\
+GARCH-t & 1.3828 & 0.0496 & 2.96 & 0 & 5 & 9.6 \\
+GJR-skt & 1.3351 & 0.0000 &  & 0 & 0 & 4.8 \\
+FHS & 1.3355 & 0.0008 & 0.27 & 0 & 1 & 5.4 \\
+GARCH-EVT & 1.3304 & -0.0043 & -1.40 & 0 & 0 & 3.8 \\
+CAViaR-ES & 1.3561 & 0.0215 & 1.55 & 0 & 0 & 7.4 \\
+FZ-1F & 1.4404 & 0.1135 & 4.81 & 0 & 9 & 11.8 \\
+FZ-Hyb & 1.4146 & 0.0832 & 2.69 & 0 & 6 & 10.2 \\
+LSTM-FZ & 1.3387 & 0.0018 & 0.10 & 0 & 0 & 5.1 \\
+TRF-FZ & 1.3576 & 0.0200 & 0.66 & 0 & 0 & 7.6 \\
+GJR-LSTM & 1.3484 & 0.0125 & 1.12 & 0 & 2 & 6.2 \\
+COMB-Econ & 1.3338 & 0.0009 & 0.10 & 0 & 0 & 4.8 \\
+COMB-All & \textbf{1.3186} & -0.0151 & -1.60 & 0 & 0 & \textbf{1.8} \\
+\bottomrule
+\end{tabular}
+\par\smallskip\parbox{\linewidth}{\scriptsize Avg loss: FZ0 loss averaged over days and then over the 12 assets. Diff vs bench: average loss minus that of GJR-skt (negative = better); Panel DM t: Diebold--Mariano statistic on the cross-asset average loss differential (Newey--West). \# better / worse: assets where the single-asset DM test is significant at 5\%. Mean rank across assets (1 = best).}
+\end{table}

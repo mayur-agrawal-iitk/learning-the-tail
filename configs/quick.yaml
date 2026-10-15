@@ -1,0 +1,64 @@
+# Small smoke-test configuration: 3 assets, short out-of-sample period, tiny training budget.
+name: quick
+
+data:
+  start: "1996-01-01"
+  end: "2026-09-30"
+  tickers:
+    SPX: "^GSPC"
+    DAX: "^GDAXI"
+    SENSEX: "^BSESN"
+
+alphas: [0.01, 0.025, 0.05]
+oos_start: "2019-01-01"
+window: 1000
+
+econometric:
+  refit_every: 63
+  hs_window: 250
+  evt_tail_frac: 0.10
+  n_jobs: 3
+
+neural:
+  models: [LSTM-FZ, TRF-FZ, GJR-LSTM]
+  lookback: 32
+  scale_window: 250
+  hidden: 16
+  layers: 1
+  heads: 2
+  dropout: 0.1
+  lr: 0.002
+  weight_decay: 0.0001
+  batch_size: 256
+  max_epochs: 5
+  patience: 3
+  val_frac: 0.2
+  seeds: [0]
+  n_jobs: 4
+  device: auto
+  gpu_jobs: 1
+
+evaluation:
+  benchmark: GJR-skt
+  mcs_size: 0.10
+  mcs_reps: 300
+  bootstrap_reps: 1000
+  subperiods:
+    COVID: ["2020-02-01", "2020-06-30"]
+    Inflation 2022: ["2022-01-01", "2022-12-31"]
+
+neural_garch:
+  garch_block: asset
+  aux_qlike: 1.0
+  d: 8
+  hidden: 16
+  rho: 0.999
+  burn_in: 250
+  lr: 0.003
+  lr_garch: 0.001
+  max_steps: 300
+  eval_every: 10
+  patience: 10
+  val_frac: 0.2
+  seeds: [0]
+  n_jobs: 4

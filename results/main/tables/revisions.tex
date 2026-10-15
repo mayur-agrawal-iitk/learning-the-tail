@@ -1,0 +1,21 @@
+\begin{table}[htbp]
+\centering
+\footnotesize
+\caption{First run (v1) versus final specification: FZ0 loss minus GJR-skt}
+\label{tab:revisions}
+\begin{tabular}{lrrrrrr}
+\toprule
+Model & v1 1\% & final 1\% & v1 2.5\% & final 2.5\% & v1 5\% & final 5\% \\
+\midrule
+CAViaR-ES & 0.0215 & 0.0220 & 0.0060 & 0.0060 & 0.0012 & 0.0012 \\
+FZ-1F & 0.1135 & 0.1201 & 0.0627 & 0.0651 & 0.0343 & 0.0367 \\
+FZ-Hyb & 0.0832 & 0.0848 & 0.0342 & 0.0377 & 0.0235 & 0.0243 \\
+LSTM-FZ & 0.0018 & -0.0082 & -0.0014 & -0.0033 & 0.0042 & 0.0047 \\
+TRF-FZ & 0.0200 & 0.0246 & 0.0163 & 0.0227 & 0.0174 & 0.0228 \\
+GJR-LSTM & 0.0125 & 0.0062 & 0.0026 & 0.0036 & 0.0016 & 0.0025 \\
+COMB-Econ & 0.0009 & 0.0015 & 0.0005 & 0.0007 & 0.0026 & 0.0027 \\
+COMB-All & -0.0151 & -0.0153 & -0.0104 & -0.0102 & -0.0055 & -0.0053 \\
+\bottomrule
+\end{tabular}
+\par\smallskip\parbox{\linewidth}{\scriptsize v1: Gaussian initialisation of the deep models' output head; grid + Nelder--Mead estimation of the semiparametric models. Final: empirical initialisation; multi-start + Powell estimation. Unchanged models are omitted. Negative = better than GJR-skt.}
+\end{table}

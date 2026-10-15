@@ -1,0 +1,61 @@
+# HOLDOUT markets: never used for model development. Evaluated ONCE with frozen models (docs/PROTOCOL.md).
+name: holdout
+
+data:
+  start: "1996-01-01"
+  end: "2026-09-30"
+  tickers:
+    TSX: "^GSPTSE"      # S&P/TSX Composite (Canada)
+    SMI: "^SSMI"        # Swiss Market Index
+    TAIEX: "^TWII"      # Taiwan Weighted
+    SHCOMP: "000001.SS" # Shanghai Composite (China)
+    IPC: "^MXX"         # S&P/BMV IPC (Mexico)
+    AEX: "^AEX"         # AEX (Netherlands)
+    IBEX: "^IBEX"       # IBEX 35 (Spain)
+    KLCI: "^KLSE"       # FTSE Bursa Malaysia KLCI
+    JKSE: "^JKSE"       # Jakarta Composite (Indonesia)
+    STI: "^STI"         # Straits Times (Singapore)
+    ATX: "^ATX"         # ATX (Austria)
+    BEL20: "^BFX"       # BEL 20 (Belgium)
+
+alphas: [0.01, 0.025, 0.05]
+oos_start: "2006-01-01"
+window: 2000
+
+econometric:
+  refit_every: 21
+  hs_window: 250
+  evt_tail_frac: 0.10
+  n_jobs: 12
+
+neural:
+  models: [LSTM-FZ, TRF-FZ, GJR-LSTM]
+  lookback: 64
+  scale_window: 250
+  hidden: 32
+  layers: 1
+  heads: 2
+  dropout: 0.1
+  head_init: empirical
+  lr: 0.001
+  weight_decay: 0.0001
+  batch_size: 512
+  max_epochs: 60
+  patience: 8
+  val_frac: 0.2
+  seeds: [0, 1, 2]
+  n_jobs: 4
+  device: auto
+  gpu_jobs: 1
+
+evaluation:
+  benchmark: GJR-skt
+  mcs_size: 0.10
+  mcs_reps: 2000
+  bootstrap_reps: 5000
+  subperiods:
+    GFC: ["2007-07-01", "2009-06-30"]
+    Euro crisis: ["2010-04-01", "2012-12-31"]
+    COVID: ["2020-02-01", "2020-06-30"]
+    Inflation 2022: ["2022-01-01", "2022-12-31"]
+    Calm 2013-2019: ["2013-01-01", "2019-12-31"]

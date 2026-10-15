@@ -1,0 +1,77 @@
+# Main experiment: 12 equity indices, out-of-sample 2006-01 to 2026-09.
+name: main
+
+data:
+  start: "1996-01-01"
+  end: "2026-09-30"
+  tickers:
+    SPX: "^GSPC"      # S&P 500 (US)
+    NASDAQ: "^IXIC"   # Nasdaq Composite (US)
+    RUT: "^RUT"       # Russell 2000 (US small caps)
+    FTSE: "^FTSE"     # FTSE 100 (UK)
+    DAX: "^GDAXI"     # DAX 40 (Germany)
+    CAC: "^FCHI"      # CAC 40 (France)
+    N225: "^N225"     # Nikkei 225 (Japan)
+    HSI: "^HSI"       # Hang Seng (Hong Kong)
+    SENSEX: "^BSESN"  # BSE Sensex (India)
+    ASX: "^AXJO"      # S&P/ASX 200 (Australia)
+    KOSPI: "^KS11"    # KOSPI (Korea)
+    IBOV: "^BVSP"     # Bovespa (Brazil)
+
+alphas: [0.01, 0.025, 0.05]
+oos_start: "2006-01-01"
+window: 2000          # rolling estimation window (trading days, ~8 years)
+
+econometric:
+  refit_every: 21     # re-estimate parameters every 21 trading days, update forecasts daily
+  hs_window: 250      # historical simulation look-back (Basel convention)
+  evt_tail_frac: 0.10 # fraction of standardized losses used to fit the GPD
+  n_jobs: 12
+
+neural:
+  models: [LSTM-FZ, TRF-FZ, GJR-LSTM]
+  lookback: 64        # input sequence length
+  scale_window: 250   # trailing window for the slow scale normaliser s_t
+  hidden: 32
+  layers: 1
+  heads: 2            # transformer only
+  dropout: 0.1
+  head_init: empirical  # empirical (VaR, ES) of pooled training targets | gaussian (run v1)
+  lr: 0.001
+  weight_decay: 0.0001
+  batch_size: 512
+  max_epochs: 60
+  patience: 8
+  val_frac: 0.2
+  seeds: [0, 1, 2]
+  n_jobs: 4           # parallel training workers (RAM-bound: ~0.8 GB per CPU worker, ~2.2 GB per GPU worker)
+  device: auto        # auto = GPU workers + CPU workers if CUDA is available | cuda | cpu
+  gpu_jobs: 1         # workers allowed on the GPU (each needs >1 GB of GPU memory and ~2.2 GB of host RAM)
+
+evaluation:
+  benchmark: GJR-skt  # reference model for Diebold-Mariano tables
+  mcs_size: 0.10
+  mcs_reps: 2000
+  bootstrap_reps: 5000
+  subperiods:
+    GFC: ["2007-07-01", "2009-06-30"]
+    Euro crisis: ["2010-04-01", "2012-12-31"]
+    COVID: ["2020-02-01", "2020-06-30"]
+    Inflation 2022: ["2022-01-01", "2022-12-31"]
+    Calm 2013-2019: ["2013-01-01", "2019-12-31"]
+
+neural_garch:          # paper 2: neural news-impact GARCH (src/tailrisk/neural_garch.py)
+  garch_block: asset   # asset = one GARCH block per market (v2, v3) | pooled (v1)
+  aux_qlike: 1.0       # weight of the auxiliary QLIKE variance score (v3); 0 = FZ0 only (v1, v2)
+  d: 8                 # state dimension: GJR variance + 7 multi-scale memories
+  hidden: 16
+  rho: 0.999           # upper bound on the state decay (stability constant)
+  burn_in: 250
+  lr: 0.003            # neural parts
+  lr_garch: 0.001      # GARCH part (decays, linear news impact)
+  max_steps: 1500      # full-batch steps
+  eval_every: 10
+  patience: 15         # evaluations without improvement
+  val_frac: 0.2
+  seeds: [0, 1, 2]
+  n_jobs: 6

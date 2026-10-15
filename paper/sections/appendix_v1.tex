@@ -1,0 +1,28 @@
+After the first complete run (v1) we made two changes. Both are documented here because they were made after out-of-sample results had been computed.
+
+\paragraph{Initialisation of the deep models' output head.} In v1 the last-layer bias was set to standard-normal values of (VaR, ES). The training log showed that, for the GJR-LSTM hybrid, early stopping returned the untrained initial model for all three seeds in the 2014 and 2024 refits. Their validation windows (2012--2013 and 2022--2023) were calm, and no trained network improved on a thin Gaussian tail there. The hybrid therefore forecast with Gaussian standardised quantiles for those two years, which understates ES. The final specification initialises the head at the empirical (VaR, ES) of the pooled standardised training targets, so that the fallback is a historical-simulation tail. With this change six of 189 training jobs still fall back to their initial model, all for the hybrid and mostly in the 2009 refit, but the fallback is now an FHS-type model rather than a Gaussian one.
+
+\paragraph{Estimation of the semiparametric models.} In v1, CAViaR-ES, FZ-1F and FZ-Hyb were estimated by Nelder--Mead from the best three points of a starting grid. Table~\ref{tab:estdiag} compares the resulting in-sample FZ0 loss ($\alpha=2.5\%$) with that of the final multi-start procedure and of a 300-start search followed by Nelder--Mead and Powell. The v1 procedure left gaps of up to 0.04, which is as large as FZ-1F's entire out-of-sample deficit. The final procedure is within about 0.01 of the intensive search and sometimes better. The last column reports GJR-skt's in-sample loss on the same windows. It is lower than the best FZ-1F fit in most windows, which shows that FZ-1F's underperformance is a feature of the model rather than of its estimation.
+
+\begin{table}[htbp]\centering\footnotesize
+\caption{Estimation quality: in-sample average FZ0 loss, $\alpha=2.5\%$, 2000-day window ending on the date shown}\label{tab:estdiag}
+\begin{tabular}{llrrrrrrr}\toprule
+& & \multicolumn{3}{c}{FZ-1F} & \multicolumn{3}{c}{FZ-Hyb} & GJR-skt \\
+\cmidrule(lr){3-5}\cmidrule(lr){6-8}
+Asset & Window end & v1 & final & 300-start & v1 & final & 300-start & \\ \midrule
+SPX & 2008-01 & 0.9018 & 0.9018 & 0.9073 & 0.9170 & 0.9135 & 0.9047 & 0.8889 \\
+SPX & 2015-01 & 1.1434 & 1.1137 & 1.1037 & 1.0856 & 1.0744 & 1.0721 & 1.0896 \\
+SPX & 2020-01 & 0.8189 & 0.7791 & 0.7780 & 0.7904 & 0.7812 & 0.7791 & 0.7301 \\
+DAX & 2008-01 & 1.1871 & 1.1798 & 1.1813 & 1.1516 & 1.1474 & 1.1477 & 1.1211 \\
+DAX & 2015-01 & 1.2619 & 1.2432 & 1.2442 & 1.2246 & 1.2213 & 1.2149 & 1.2222 \\
+DAX & 2020-01 & 1.0447 & 1.0448 & 1.0350 & 1.0112 & 1.0109 & 1.0097 & 1.0420 \\
+SENSEX & 2008-01 & 1.3687 & 1.3481 & 1.3417 & 1.3513 & 1.3367 & 1.3352 & 1.3196 \\
+SENSEX & 2015-01 & 1.2207 & 1.1983 & 1.2047 & 1.2080 & 1.2072 & 1.2085 & 1.1971 \\
+SENSEX & 2020-01 & 0.7719 & 0.7686 & 0.7616 & 0.7748 & 0.7675 & 0.7652 & 0.7790 \\
+\bottomrule\end{tabular}
+\par\smallskip\parbox{\linewidth}{\scriptsize Cold-start fits on a single window. In the rolling exercise the estimators are also warm-started from the previous window's optimum.}
+\end{table}
+
+\paragraph{Effect on the results.} Table~\ref{tab:revisions} reports the loss difference from GJR-skt for every model affected by the revisions. The empirical initialisation improves LSTM-FZ and GJR-LSTM at the 1\% level, where the Gaussian fallback was most harmful. The stronger optimiser slightly \emph{raises} the out-of-sample loss of the FZ-GAS models despite their better in-sample fit, the usual signature of fitting noise in a non-smooth objective. No conclusion of the paper changes.
+
+\input{tables/revisions}
