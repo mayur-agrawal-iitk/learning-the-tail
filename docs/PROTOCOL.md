@@ -113,3 +113,16 @@ with `configs/holdout.yaml`, and reported in full whatever the outcome.
 * The holdout evaluation is run **once**. If a bug is found afterwards, it is fixed, the run is
   repeated, and both runs are reported.
 * All development-sample results are reported as such, never as out-of-sample evidence.
+
+## HOLDOUT RESULTS (run once, 16 Oct 2026, frozen commit 7a58b26; alpha = 2.5%)
+| Test | Loss difference | Panel DM t | Markets better / worse |
+|---|---|---|---|
+| GJRX-skt vs GJR-skt (value of overnight information) | −0.0231 | −3.88 | 5 / 0 |
+| H1: CTG-FZ vs GJRX-skt | +0.0125 | 1.27 | 0 / 0 |
+| H2: CTG-FZ vs LSTM-FZ | −0.0026 | −1.36 | 1 / 0 |
+| Ablation: CTG-FZ vs LSTMQ-FZ | −0.0003 | −1.06 | 0 / 0 |
+| H3: COMB-All+X vs COMB-All | −0.0054 | −5.67 | 11 / 0 |
+| Paper 1 replication: COMB-All vs COMB-Econ | −0.0141 | −7.07 | 11 / 0 |
+H1 and H2 are not supported; H3 is supported. The development-sample pattern replicates: the
+cross-market information is valuable (GJRX-skt is the best single model) but the networks do not
+extract it, and combinations including the deep models dominate. Full tables: results/holdout/tables/.

@@ -1,0 +1,28 @@
+\begin{table}[htbp]
+\centering
+\footnotesize
+\caption{Pre-registered hypothesis tests (FZ0 loss of first model minus second)}
+\label{tab:hyp}
+\begin{tabular}{lrrrrr}
+\toprule
+Test (level) & Loss diff & Panel DM t & p-value & \# assets better & \# assets worse \\
+\midrule
+H1: CTG-FZ vs GJRX-skt (1\%) & 0.0273 & 1.67 & 0.095 & 0 & 2 \\
+H1: CTG-FZ vs GJRX-skt (2.5\%) & 0.0125 & 1.27 & 0.206 & 0 & 0 \\
+H1: CTG-FZ vs GJRX-skt (5\%) & 0.0069 & 0.93 & 0.354 & 1 & 1 \\
+H2: CTG-FZ vs LSTM-FZ (1\%) & -0.0039 & -1.41 & 0.158 & 1 & 1 \\
+H2: CTG-FZ vs LSTM-FZ (2.5\%) & -0.0026 & -1.36 & 0.175 & 1 & 0 \\
+H2: CTG-FZ vs LSTM-FZ (5\%) & -0.0032 & -1.75 & 0.080 & 0 & 0 \\
+H3: COMB-All+X vs COMB-All (1\%) & -0.0082 & -4.80 & 0.000 & 10 & 0 \\
+H3: COMB-All+X vs COMB-All (2.5\%) & -0.0054 & -5.67 & 0.000 & 11 & 0 \\
+H3: COMB-All+X vs COMB-All (5\%) & -0.0042 & -6.27 & 0.000 & 11 & 0 \\
+Ablation: CTG-FZ vs LSTMQ-FZ (1\%) & -0.0004 & -1.10 & 0.273 & 0 & 0 \\
+Ablation: CTG-FZ vs LSTMQ-FZ (2.5\%) & -0.0003 & -1.06 & 0.290 & 0 & 0 \\
+Ablation: CTG-FZ vs LSTMQ-FZ (5\%) & -0.0003 & -1.38 & 0.168 & 0 & 0 \\
+Info: GJRX-skt vs GJR-skt (1\%) & -0.0375 & -3.51 & 0.000 & 4 & 0 \\
+Info: GJRX-skt vs GJR-skt (2.5\%) & -0.0231 & -3.88 & 0.000 & 5 & 0 \\
+Info: GJRX-skt vs GJR-skt (5\%) & -0.0161 & -4.00 & 0.000 & 6 & 0 \\
+\bottomrule
+\end{tabular}
+\par\smallskip\parbox{\linewidth}{\scriptsize Negative loss difference = the first model is more accurate. Panel Diebold--Mariano test on the cross-asset average loss differential.}
+\end{table}

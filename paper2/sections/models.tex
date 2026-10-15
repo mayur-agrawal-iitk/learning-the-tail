@@ -1,0 +1,30 @@
+All models produce one-step-ahead $(\VaR,\ES)$ forecasts at the three levels. The benchmarks of \citet{agrawal2026learning} (historical simulation, GARCH-type models with normal, Student-$t$ and skewed-$t$ innovations, filtered historical simulation, GARCH-EVT, CAViaR-ES and two FZ-GAS models) and its deep models (LSTM-FZ, TRF-FZ, GJR-LSTM) use only the close-to-close information set and are carried over unchanged. Four models are new.
+
+\paragraph{GJRX-skt (econometric, pre-open information).} A GJR-GARCH(1,1,1) with Hansen skewed-$t$ innovations whose variance responds linearly to squared foreign news,
+\begin{equation}\label{eq:gjrx}
+\sigma_t^2=\omega+(a+g\,\1\{\varepsilon_{t-1}<0\})\varepsilon_{t-1}^2+b\,\sigma_{t-1}^2+d_1\bar X_t+d_2\bar X_t^-,
+\end{equation}
+where $\bar X_t$ is the average of $x_{j,t}^2$ over markets with fresh news and $\bar X_t^-$ the same average restricted to negative moves. Both are known before $r_t$ is realised. The model is estimated by maximum likelihood with $d_1,d_2\ge0$ on the same rolling window and refit schedule as the other econometric models. It nests GJR-skt ($d_1=d_2=0$).
+
+\paragraph{NG-FZ (neural news-impact GARCH).} Returns are scaled by a per-asset constant, $y_t=r_t/s$, and a $d$-dimensional state follows a \emph{linear} recursion driven by a \emph{learned} news-impact function \citep{engle1993measuring}:
+\begin{align}
+h_t&=A\,h_{t-1}+N_\theta(y_{t-1}),\qquad A=\mathrm{diag}(a_1,\dots,a_d),\quad 0<a_k<\rho<1,\label{eq:ng}\\
+N_\theta(y)&=B\,(y,\,y^2,\,y^2\1\{y<0\},\,|y|)'+c+g\cdot\mathrm{MLP}(\tanh(y/2),\log(1+y^2),\1\{y<0\}).\nonumber
+\end{align}
+The first coordinate is a GJR-GARCH variance, the others are volatility memories at decay rates $0.5,\dots,0.995$ (as in component GARCH). Log-variance and tail shape are read out by small networks, and the output uses the monotone head of \citet{agrawal2026learning}.
+
+\begin{proposition}[Stability and nesting]\label{prop:ng}
+(i) For any input path and any two initial states, $\lVert h_t-h'_t\rVert_\infty\le\rho^{\,t}\lVert h_0-h'_0\rVert_\infty$: the filter forgets its initialisation exponentially (invertibility).
+(ii) If $(y_t)$ is strictly stationary and ergodic with $\E\log^+\lVert N_\theta(y_0)\rVert<\infty$, then $h^*_t=\sum_{j\ge0}A^jN_\theta(y_{t-1-j})$ converges almost surely, is the unique stationary ergodic solution of \eqref{eq:ng}, and $\lVert h_t-h^*_t\rVert\to0$ exponentially almost surely \citep{brandt1986stochastic,bougerol1993kalman}.
+(iii) With $g=g'=0$ (both neural gates closed) and $d=1$, NG-FZ is exactly GJR-GARCH(1,1) with a constant standardised tail.
+\end{proposition}
+\begin{proof}
+(i) $h_t-h'_t=A^t(h_0-h'_0)$ because the input enters additively and does not depend on the state; $\lVert A^t\rVert_\infty=\max_k a_k^t\le\rho^t$. (ii) By the root test, $\limsup_j\lVert A^jN_\theta(y_{t-1-j})\rVert^{1/j}\le\rho\cdot\limsup_j\exp(\log^+\lVert N_\theta(y_{t-1-j})\rVert/j)=\rho<1$ almost surely, because $\E\log^+\lVert N_\theta(y_0)\rVert<\infty$ implies $\log^+\lVert N_\theta(y_{-j})\rVert/j\to0$ (Borel--Cantelli). Uniqueness and the convergence of $h_t$ follow from (i). (iii) By substitution.
+\end{proof}
+The network is initialised at (iii), with the GARCH part at a fitted GJR model and the tail at the empirical tail of its residuals, so that training starts from a strong econometric model and learns corrections by minimising FZ0. Gradient descent on a linear recursion with bounded decays cannot produce explosive filters, which is a practical advantage over generic recurrent networks.
+
+\paragraph{CTG-FZ (contagion network).} CTG-FZ adds a cross-market module to LSTM-FZ, with identical inputs and hyperparameters otherwise. Each foreign market contributes a token $k_j=\mathrm{MLP}(x_j,|x_j|,\mathrm{emb}_j)$. A query is formed from the target market's embedding and its LSTM state, and attention over the markets with fresh news yields a contagion vector $c=\sum_jw_jk_j$, which is zero when no foreign market traded overnight. Because the tokens are non-linear in $x_j$ and the query depends on the target's own volatility state, the module can represent disproportionate responses to large foreign crashes, market-specific lead--lag structure and state-dependent contagion. The weights $w_j$ form an interpretable transmission matrix. In the final specification (v2, Section~\ref{sec:design}) the output is location--scale, $\VaR=s\,\varsigma\,q$ and $\ES=s\,\varsigma\,c$, with $\varsigma$ from a variance head trained by the composite score of Proposition~\ref{prop:composite}.
+
+\paragraph{LSTMQ-FZ (ablation).} LSTMQ-FZ is identical to CTG-FZ v2 with the foreign news switched off. The comparison CTG-FZ versus LSTMQ-FZ therefore isolates the value of the cross-market information for the network, holding architecture and objective fixed.
+
+\paragraph{Combinations.} COMB-All (all econometric models except HS, plus the three deep models of \citealp{agrawal2026learning}) is extended to COMB-All+X by adding GJRX-skt and CTG-FZ, and to COMB-All+NG by adding NG-FZ. All combinations are equal-weight averages, specified before any result was seen.

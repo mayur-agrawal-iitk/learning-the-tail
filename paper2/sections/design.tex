@@ -1,0 +1,25 @@
+\paragraph{Samples.} The \emph{development} sample consists of the twelve indices of \citet{agrawal2026learning}: S\&P 500, Nasdaq Composite, Russell 2000, FTSE 100, DAX, CAC 40, Nikkei 225, Hang Seng, BSE Sensex, S\&P/ASX 200, KOSPI and Bovespa. The \emph{holdout} sample consists of twelve further indices: S\&P/TSX, SMI, TAIEX, Shanghai Composite, IPC, AEX, IBEX 35, KLCI, Jakarta Composite, Straits Times, ATX and BEL 20. The holdout markets were chosen by a mechanical rule, before any model was run on them. The rule requires at least 2{,}000 daily observations before 2006, no multi-month gaps and fewer than fifteen stale prices; it excluded OMXS30, Merval and FTSE MIB. Both samples use the out-of-sample period January 2006 to September 2026, a 2{,}000-day rolling window and the evaluation methods of \citet{agrawal2026learning}.
+
+\paragraph{Protocol.} The protocol, its amendments and every development result are recorded in a public, time-stamped file (\texttt{docs/PROTOCOL.md} in the repository). New models were designed and revised on the development sample only. Before any holdout run, the final specifications were frozen in a git commit (\texttt{7a58b26}, 15 October 2026), and the holdout sample was then evaluated exactly once. The pre-registered hypotheses, at $\alpha=2.5\%$ with panel Diebold--Mariano tests, were:
+\begin{itemize}
+\item[H1] CTG-FZ has lower FZ0 loss than GJRX-skt (learning contagion versus a linear spillover model with the same information);
+\item[H2] CTG-FZ has lower loss than LSTM-FZ (value of the cross-market information for the network);
+\item[H3] COMB-All+X has lower loss than COMB-All.
+\end{itemize}
+
+\paragraph{Development history.} For transparency we report every variant tried on the development sample (Table~\ref{tab:devlog}). NG-FZ v1 shared one GARCH block across markets. v2 gave each market its own block and overfitted. The diagnosis, that FZ0 learns volatility dynamics inefficiently, motivated v3 (v2 plus the auxiliary QLIKE score of Proposition~\ref{prop:composite}), which roughly halved v2's deficit. Under the pre-specified rule (lowest development loss), v1 was frozen. CTG-FZ v1 reacted to foreign news but did not improve on LSTM-FZ. By the same efficiency diagnosis, v2 adopted the location--scale output with the composite score, and the ablation LSTMQ-FZ was added at that point. A bug in the first v2 run (a variable that silently disabled the new settings) was detected before any result was seen, fixed with a test, and the run was repeated. v2 was frozen by the selection rule.
+
+\begin{table}[htbp]\centering\footnotesize
+\caption{Development history (development sample, $\alpha=2.5\%$): FZ0 loss relative to the stated comparison}\label{tab:devlog}
+\begin{tabular}{llrr}\toprule
+Variant & Comparison & Loss difference & DM $t$ \\\midrule
+NG-FZ v1 (pooled GARCH block) & GJR-skt & $+0.0044$ & 0.42 \\
+NG-FZ v2 (market-specific block) & GJR-skt & $+0.0272$ & 2.18 \\
+NG-FZ v3 (v2 + QLIKE) & GJR-skt & $+0.0146$ & 1.65 \\
+CTG-FZ v1 & GJRX-skt / LSTM-FZ & $+0.0177$ / $+0.0016$ & 1.30 / 0.96 \\
+CTG-FZ v2 & GJRX-skt / LSTM-FZ & $+0.0153$ / $-0.0007$ & 1.22 / $-0.29$ \\
+CTG-FZ v2 & LSTMQ-FZ (ablation) & $+0.0002$ & 0.48 \\
+GJRX-skt & GJR-skt & $-0.0193$ & $-3.90$ \\
+\bottomrule\end{tabular}
+\par\smallskip\parbox{\linewidth}{\scriptsize Frozen for the holdout: NG-FZ v1, CTG-FZ v2, LSTMQ-FZ, GJRX-skt and all models and combinations of \citet{agrawal2026learning}.}
+\end{table}

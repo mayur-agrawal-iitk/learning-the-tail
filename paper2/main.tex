@@ -1,0 +1,111 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb,amsthm,bm}
+\usepackage{booktabs,graphicx,caption}
+\usepackage[authoryear,round]{natbib}
+\usepackage[hidelinks]{hyperref}
+\usepackage{xcolor}
+\usepackage{setspace}
+\onehalfspacing
+
+\newtheorem{proposition}{Proposition}
+\newtheorem{definition}{Definition}
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+\newcommand{\1}{\mathbf{1}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\F}{\mathcal{F}}
+\newcommand{\VaR}{\mathrm{VaR}}
+\newcommand{\ES}{\mathrm{ES}}
+\newcommand{\todo}[1]{\textcolor{red}{[TODO: #1]}}
+
+\title{\todo{Title after the holdout evaluation}}
+\author{Mayur Agrawal\thanks{Department of Computer Science and Engineering and Department of Economic Sciences, Indian Institute of Technology Kanpur, Kanpur 208016, India. Email: \href{mailto:mayurag22@iitk.ac.in}{mayurag22@iitk.ac.in}. Code, data pipeline and the pre-registered protocol: \url{https://github.com/mayur-agrawal-iitk/learning-the-tail}.}}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\input{sections/abstract}
+\end{abstract}
+
+\noindent\textbf{Keywords:} Expected Shortfall, Value-at-Risk, volatility spillovers, contagion, deep learning, elicitability, pre-registration.\\
+\noindent\textbf{JEL:} C45, C52, C53, C58, G15, G17.
+
+%==============================================================================
+\section{Introduction}\label{sec:intro}
+%==============================================================================
+\input{sections/intro}
+
+%==============================================================================
+\section{Information set: what is known before a market opens}\label{sec:info}
+%==============================================================================
+Equity markets in different time zones trade in sequence. When the risk manager of market $i$ sets the Value-at-Risk for trading day $D$ shortly before $i$ opens, markets that have traded in the meantime have already revealed information that $i$'s own close-to-close history does not contain \citep{hamao1990correlations,lin1994do}. Let $C_i(D)$ and $O_i(D)$ denote the close and open of market $i$ on its local trading day $D$, in coordinated universal time, and let $D^-$ be $i$'s previous trading day.
+
+\begin{definition}[Pre-open information set]
+$\F^{\mathrm{pre}}_{i,D}$ contains the returns of market $i$ up to $D^-$ and, for every other market $j$, all returns of sessions $s$ with $C_j(s)\le O_i(D)-2m$, where $m$ is a safety margin.
+\end{definition}
+
+The new information for day $D$ is the overnight move of each foreign market,
+\begin{equation}\label{eq:news}
+x_{j,D}=\sum_{s:\,C_i(D^-)<C_j(s)\le O_i(D)-2m}\frac{r_{j,s}}{s_{j,s}},
+\end{equation}
+where $s_{j,s}$ is $j$'s trailing 250-day root mean square return up to the previous session, so that $x_{j,D}$ is measured in units of $j$'s usual volatility. An indicator $a_{j,D}$ records whether at least one such session exists.
+
+Historical exchange schedules have changed (Tokyo extended its close by 30 minutes in 2024, Seoul in 2016, Brazil abolished daylight saving in 2019). To rule out look-ahead bias, we use the \emph{latest} plausible close of every exchange, including closing auctions, and the \emph{earliest} plausible open, including pre-opening sessions. We then require an additional margin of $m=30$ minutes on each side, and handle daylight saving with the IANA time-zone database. A violation could only arise from a schedule error of more than an hour in the conservative direction. The construction makes stale information look new, which can only weaken the predictive content of the news, never strengthen it. In our development sample, Asian markets see the previous U.S.\ and European sessions on about 97\% of days, and U.S.\ markets see the same day's Asian sessions on about 95\% of days.
+
+%==============================================================================
+\section{Scoring and statistical efficiency}\label{sec:theory}
+%==============================================================================
+As in \citet{agrawal2026learning}, forecasts of $(\VaR_\alpha,\ES_\alpha)$ for $\alpha\in\{1\%,2.5\%,5\%\}$ are trained and evaluated with the strictly consistent FZ0 loss of \citet{patton2019dynamic},
+\[
+L_\alpha(y,v,e)=-\frac{1}{\alpha e}\1\{y\le v\}(v-y)+\frac{v}{e}+\log(-e)-1 .
+\]
+FZ0 receives information about its target mainly from tail days. Away from the tail, the loss is $v/e+\log(-e)-1$, which depends on the forecast only through its level. Learning \emph{dynamics}, i.e.\ how risk responds to news, from FZ0 alone is therefore statistically inefficient. A Gaussian quasi-likelihood instead learns the dynamics of volatility from every day's squared return. This motivates an auxiliary score.
+
+\begin{proposition}[Composite score]\label{prop:composite}
+Let $Q(y,\varsigma^2)=y^2/\varsigma^2+\log\varsigma^2$ (QLIKE). For $\lambda\ge0$, the score
+\[
+S(y;\{v_k,e_k\}_{k=1}^K,\varsigma^2)=\sum_{k=1}^K L_{\alpha_k}(y,v_k,e_k)+\lambda\,Q(y,\varsigma^2)
+\]
+is strictly consistent for the vector $\bigl(\{\VaR_{\alpha_k},\ES_{\alpha_k}\}_{k=1}^K,\ \E[y^2]\bigr)$, provided $\E y^2<\infty$ and every $L_{\alpha_k}$ is strictly consistent for its pair (Proposition 1 of \citealp{agrawal2026learning}).
+\end{proposition}
+\begin{proof}
+$\E Q(Y,\varsigma^2)=\E[Y^2]/\varsigma^2+\log\varsigma^2$ has derivative $(\varsigma^2-\E Y^2)/\varsigma^4$ and is uniquely minimised at $\varsigma^2=\E Y^2$. The expected composite score is a sum of terms that depend on disjoint components of the report, each uniquely minimised at the corresponding true functional, so the sum is uniquely minimised at the true vector.
+\end{proof}
+
+\begin{remark}
+In a location-scale network $v_k=\varsigma q_k$, $e_k=\varsigma c_k$, the reports are linked. The composite score then still identifies the truth when the model is correctly specified. Under misspecification, $\lambda$ trades off tail fit against volatility fit. We fix $\lambda=1$ a priori and do not tune it. QLIKE is also the loss that is robust to noise in the volatility proxy \citep{patton2011volatility}.
+\end{remark}
+
+%==============================================================================
+\section{Models}\label{sec:models}
+%==============================================================================
+\input{sections/models}
+
+%==============================================================================
+\section{Pre-registered design}\label{sec:design}
+%==============================================================================
+\input{sections/design}
+
+%==============================================================================
+\section{Results}\label{sec:results}
+%==============================================================================
+\input{sections/results}
+
+%==============================================================================
+\section{Conclusion}\label{sec:conclusion}
+%==============================================================================
+\input{sections/conclusion}
+
+\section*{Acknowledgments and disclosure}
+The author used AI-based assistance (large language model tools) for code development, literature search and editing. All modelling choices, results and interpretations were checked by the author, who takes full responsibility for the content of this paper. Any errors are the author's own.
+
+\bibliographystyle{plainnat}
+\bibliography{references}
+
+\end{document}

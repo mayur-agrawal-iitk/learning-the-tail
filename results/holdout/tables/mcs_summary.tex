@@ -1,0 +1,29 @@
+\begin{table}[htbp]
+\centering
+\footnotesize
+\caption{Model confidence set (90\%) membership}
+\label{tab:mcs}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lrrrrrr}
+\toprule
+Model & \# assets 1\% & \# assets 2.5\% & \# assets 5\% & Pooled p 1\% & Pooled p 2.5\% & Pooled p 5\% \\
+\midrule
+HS & 0 & 0 & 0 & 0.000 & 0.000 & 0.000 \\
+GARCH-N & 0 & 0 & 0 & 0.000 & 0.000 & 0.000 \\
+GARCH-t & 4 & 1 & 1 & 0.001 & 0.000 & 0.000 \\
+GJR-skt & 12 & 10 & 7 & 0.054 & 0.004 & 0.002 \\
+FHS & 12 & 10 & 9 & 0.178 & 0.006 & 0.002 \\
+GARCH-EVT & 11 & 11 & 9 & 0.275 & 0.006 & 0.003 \\
+CAViaR-ES & 12 & 11 & 11 & 0.347 & 0.145 & 0.229 \\
+FZ-1F & 0 & 0 & 0 & 0.000 & 0.000 & 0.000 \\
+FZ-Hyb & 3 & 0 & 0 & 0.000 & 0.000 & 0.000 \\
+LSTM-FZ & 12 & 12 & 12 & 0.589 & 0.610 & 0.677 \\
+TRF-FZ & 10 & 9 & 7 & 0.055 & 0.024 & 0.015 \\
+GJR-LSTM & 12 & 12 & 12 & 1.000 & 1.000 & 1.000 \\
+COMB-Econ & 8 & 2 & 2 & 0.000 & 0.000 & 0.000 \\
+COMB-All & 12 & 12 & 12 & 0.804 & 0.610 & 0.677 \\
+\bottomrule
+\end{tabular}
+}
+\par\smallskip\parbox{\linewidth}{\scriptsize Columns '\# assets': number of assets whose MCS contains the model. 'Pooled p': MCS p-value on the cross-asset average loss series; a model is in the pooled MCS if p > 0.1. Range statistic, stationary bootstrap, 2000 replications.}
+\end{table}

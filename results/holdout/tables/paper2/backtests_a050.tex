@@ -1,0 +1,33 @@
+\begin{table}[htbp]
+\centering
+\footnotesize
+\caption{Backtests, $\alpha=0.05$: number of assets (out of 12) rejecting at 5\%}
+\label{tab:bt_a050}
+\begin{tabular}{lrrrrrrrr}
+\toprule
+Model & Hit \% & UC & CC & DQ & ER & CCT-u & CCT-c & Z2 \\
+\midrule
+HS & 5.71 & 10 & 12 & 12 & 12 & 12 & 12 & -0.225 \\
+GARCH-N & 5.73 & 9 & 9 & 10 & 12 & 12 & 12 & -0.302 \\
+GARCH-t & 6.24 & 12 & 11 & 11 & 10 & 12 & 10 & -0.301 \\
+GJR-skt & 5.25 & 2 & 2 & 3 & 4 & 1 & 0 & -0.071 \\
+FHS & 5.08 & 0 & 1 & 0 & 1 & 0 & 0 & -0.030 \\
+GARCH-EVT & 5.14 & 0 & 2 & 2 & 2 & 0 & 0 & -0.037 \\
+CAViaR-ES & 5.08 & 0 & 2 & 1 & 1 & 1 & 0 & -0.041 \\
+FZ-1F & 5.29 & 1 & 3 & 3 & 1 & 1 & 4 & -0.062 \\
+FZ-Hyb & 5.17 & 1 & 3 & 1 & 2 & 2 & 0 & -0.056 \\
+LSTM-FZ & 5.53 & 8 & 8 & 7 & 3 & 7 & 7 & -0.120 \\
+TRF-FZ & 5.47 & 8 & 6 & 12 & 5 & 9 & 5 & -0.132 \\
+GJR-LSTM & 5.13 & 2 & 3 & 2 & 3 & 4 & 2 & -0.050 \\
+NG-FZ & 5.10 & 0 & 2 & 1 & 4 & 2 & 2 & -0.046 \\
+GJRX-skt & 5.24 & 2 & 2 & 2 & 3 & 2 & 0 & -0.066 \\
+LSTMQ-FZ & 5.61 & 8 & 9 & 8 & 3 & 9 & 6 & -0.135 \\
+CTG-FZ & 5.61 & 8 & 9 & 8 & 3 & 8 & 7 & -0.134 \\
+COMB-Econ & 5.24 & 1 & 3 & 1 & 4 & 0 & 0 & -0.075 \\
+COMB-All & 5.19 & 0 & 2 & 0 & 2 & 1 & 1 & -0.055 \\
+COMB-All+NG & 5.16 & 0 & 2 & 1 & 3 & 1 & 1 & -0.050 \\
+COMB-All+X & 5.20 & 1 & 2 & 1 & 2 & 0 & 0 & -0.054 \\
+\bottomrule
+\end{tabular}
+\par\smallskip\parbox{\linewidth}{\scriptsize Hit \%: average violation rate (nominal 5\%). VaR tests: UC Kupiec, CC Christoffersen conditional coverage, DQ Engle--Manganelli. ES tests: ER McNeil--Frey exceedance residuals (one-sided bootstrap), CCT-u/CCT-c Nolde--Ziegel unconditional/conditional calibration. Z2: Acerbi--Szekely statistic averaged over assets (negative = ES too optimistic).}
+\end{table}

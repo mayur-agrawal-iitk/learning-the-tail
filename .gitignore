@@ -22,12 +22,12 @@ results/*/.gpu_slots/
 **/ctg_jobs/
 
 # LaTeX build artefacts (main.pdf is kept)
-paper/*.aux
-paper/*.log
-paper/*.out
-paper/*.bbl
-paper/*.blg
-paper/*.synctex.gz
+paper*/*.aux
+paper*/*.log
+paper*/*.out
+paper*/*.bbl
+paper*/*.blg
+paper*/*.synctex.gz
 
 # personal notes (kept locally)
 notes/
